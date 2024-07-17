@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.26.0
 
-package db
+package DB
 
 import (
 	"database/sql"
@@ -10,83 +10,90 @@ import (
 )
 
 type Category struct {
-	ID          int32
-	Name        string
-	Description sql.NullString
-	CreatedAt   sql.NullTime
-	UpdatedAt   sql.NullTime
+	ID          int64          `json:"id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
 }
 
 type Complaint struct {
-	ID        int32
-	ServiceID int32
-	UserID    int32
-	Type      string
-	Complaint sql.NullString
-	CreatedAt sql.NullTime
-	UpdatedAt sql.NullTime
+	ID        int64        `json:"id"`
+	ServiceID int32        `json:"service_id"`
+	UserID    int32        `json:"user_id"`
+	Type      string       `json:"type"`
+	Complaint string       `json:"complaint"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
 }
 
 type Rating struct {
-	ID        int32
-	ServiceID int32
-	UserID    int32
-	Rating    int32
-	Comment   sql.NullString
-	CreatedAt sql.NullTime
-	UpdatedAt sql.NullTime
+	ID        int64          `json:"id"`
+	ServiceID int32          `json:"service_id"`
+	UserID    int32          `json:"user_id"`
+	Rating    int32          `json:"rating"`
+	Comment   sql.NullString `json:"comment"`
+	CreatedAt sql.NullTime   `json:"created_at"`
+	UpdatedAt sql.NullTime   `json:"updated_at"`
 }
 
 type Reservation struct {
-	ID        int32
-	ServiceID int32
-	UserID    int32
-	Time      time.Time
-	WeekdayID int32
-	Ranking   sql.NullInt32
-	CreatedAt sql.NullTime
-	UpdatedAt sql.NullTime
+	ID        int64         `json:"id"`
+	ServiceID int32         `json:"service_id"`
+	UserID    int32         `json:"user_id"`
+	Time      time.Time     `json:"time"`
+	WeekdayID int32         `json:"weekday_id"`
+	Ranking   sql.NullInt32 `json:"ranking"`
+	CreatedAt sql.NullTime  `json:"created_at"`
+	UpdatedAt sql.NullTime  `json:"updated_at"`
+}
+
+type Role struct {
+	ID        int64        `json:"id"`
+	Name      string       `json:"name"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
 }
 
 type Service struct {
-	ID               int32
-	UserID           int32
-	Description      sql.NullString
-	GoogleMapAddress sql.NullString
-	Willaya          sql.NullString
-	Baladia          sql.NullString
-	CreatedAt        sql.NullTime
-	UpdatedAt        sql.NullTime
+	ID               int64          `json:"id"`
+	UserID           int32          `json:"user_id"`
+	Description      sql.NullString `json:"description"`
+	GoogleMapAddress sql.NullString `json:"google_map_address"`
+	Willaya          sql.NullString `json:"willaya"`
+	Baladia          sql.NullString `json:"baladia"`
+	CreatedAt        sql.NullTime   `json:"created_at"`
+	UpdatedAt        sql.NullTime   `json:"updated_at"`
 }
 
 type Subcategory struct {
-	ID          int32
-	Name        string
-	Description sql.NullString
-	CategoryID  int32
-	CreatedAt   sql.NullTime
-	UpdatedAt   sql.NullTime
+	ID          int64          `json:"id"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	CategoryID  int32          `json:"category_id"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
 }
 
 type User struct {
-	ID          int32
-	FirstName   string
-	LastName    string
-	PhoneNumber string
-	Email       string
-	Password    string
-	UserRole    string
-	CreatedAt   sql.NullTime
-	UpdatedAt   sql.NullTime
+	ID          int64        `json:"id"`
+	FirstName   string       `json:"first_name"`
+	LastName    string       `json:"last_name"`
+	PhoneNumber string       `json:"phone_number"`
+	Email       string       `json:"email"`
+	Password    string       `json:"password"`
+	RoleID      int32        `json:"role_id"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
 }
 
 type Weekday struct {
-	ID         int32
-	ServiceID  int32
-	Name       string
-	StartTime  time.Time
-	EndTime    time.Time
-	MaxClients int32
-	CreatedAt  sql.NullTime
-	UpdatedAt  sql.NullTime
+	ID         int64        `json:"id"`
+	ServiceID  int32        `json:"service_id"`
+	Name       string       `json:"name"`
+	StartTime  time.Time    `json:"start_time"`
+	EndTime    time.Time    `json:"end_time"`
+	MaxClients int32        `json:"max_clients"`
+	CreatedAt  sql.NullTime `json:"created_at"`
+	UpdatedAt  sql.NullTime `json:"updated_at"`
 }

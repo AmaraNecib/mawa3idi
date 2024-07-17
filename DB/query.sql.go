@@ -3,33 +3,309 @@
 //   sqlc v1.26.0
 // source: query.sql
 
-package db
+package DB
 
 import (
 	"context"
+	"database/sql"
+	"time"
 )
 
-const getUser = `-- name: GetUser :many
-SELECT id, first_name, last_name, phone_number, email, password, user_role, created_at, updated_at FROM users WHERE id = $1 LIMIT 1
+const createCategory = `-- name: CreateCategory :exec
+INSERT INTO categories (name, description)
+VALUES ($1, $2)
 `
 
-func (q *Queries) GetUser(ctx context.Context, id int32) ([]User, error) {
-	rows, err := q.db.QueryContext(ctx, getUser, id)
+type CreateCategoryParams struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+}
+
+func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) error {
+	_, err := q.db.ExecContext(ctx, createCategory, arg.Name, arg.Description)
+	return err
+}
+
+const createComplaint = `-- name: CreateComplaint :exec
+INSERT INTO complaints (service_id, user_id, type, complaint)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateComplaintParams struct {
+	ServiceID int32  `json:"service_id"`
+	UserID    int32  `json:"user_id"`
+	Type      string `json:"type"`
+	Complaint string `json:"complaint"`
+}
+
+func (q *Queries) CreateComplaint(ctx context.Context, arg CreateComplaintParams) error {
+	_, err := q.db.ExecContext(ctx, createComplaint,
+		arg.ServiceID,
+		arg.UserID,
+		arg.Type,
+		arg.Complaint,
+	)
+	return err
+}
+
+const createRating = `-- name: CreateRating :exec
+INSERT INTO ratings (service_id, user_id, rating, comment)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateRatingParams struct {
+	ServiceID int32          `json:"service_id"`
+	UserID    int32          `json:"user_id"`
+	Rating    int32          `json:"rating"`
+	Comment   sql.NullString `json:"comment"`
+}
+
+func (q *Queries) CreateRating(ctx context.Context, arg CreateRatingParams) error {
+	_, err := q.db.ExecContext(ctx, createRating,
+		arg.ServiceID,
+		arg.UserID,
+		arg.Rating,
+		arg.Comment,
+	)
+	return err
+}
+
+const createReservation = `-- name: CreateReservation :exec
+INSERT INTO reservations (service_id, user_id, time, weekday_id, ranking)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type CreateReservationParams struct {
+	ServiceID int32         `json:"service_id"`
+	UserID    int32         `json:"user_id"`
+	Time      time.Time     `json:"time"`
+	WeekdayID int32         `json:"weekday_id"`
+	Ranking   sql.NullInt32 `json:"ranking"`
+}
+
+func (q *Queries) CreateReservation(ctx context.Context, arg CreateReservationParams) error {
+	_, err := q.db.ExecContext(ctx, createReservation,
+		arg.ServiceID,
+		arg.UserID,
+		arg.Time,
+		arg.WeekdayID,
+		arg.Ranking,
+	)
+	return err
+}
+
+const createRole = `-- name: CreateRole :exec
+INSERT INTO roles (name)
+VALUES ($1)
+`
+
+func (q *Queries) CreateRole(ctx context.Context, name string) error {
+	_, err := q.db.ExecContext(ctx, createRole, name)
+	return err
+}
+
+const createService = `-- name: CreateService :exec
+INSERT INTO services (user_id, description, google_map_address, willaya, baladia)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type CreateServiceParams struct {
+	UserID           int32          `json:"user_id"`
+	Description      sql.NullString `json:"description"`
+	GoogleMapAddress sql.NullString `json:"google_map_address"`
+	Willaya          sql.NullString `json:"willaya"`
+	Baladia          sql.NullString `json:"baladia"`
+}
+
+func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) error {
+	_, err := q.db.ExecContext(ctx, createService,
+		arg.UserID,
+		arg.Description,
+		arg.GoogleMapAddress,
+		arg.Willaya,
+		arg.Baladia,
+	)
+	return err
+}
+
+const createSubcategory = `-- name: CreateSubcategory :exec
+INSERT INTO subcategories (name, description, category_id)
+VALUES ($1, $2, $3)
+`
+
+type CreateSubcategoryParams struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	CategoryID  int32          `json:"category_id"`
+}
+
+func (q *Queries) CreateSubcategory(ctx context.Context, arg CreateSubcategoryParams) error {
+	_, err := q.db.ExecContext(ctx, createSubcategory, arg.Name, arg.Description, arg.CategoryID)
+	return err
+}
+
+const createUser = `-- name: CreateUser :exec
+
+INSERT INTO users (first_name, last_name, phone_number, email, password, role_id)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, first_name, last_name, phone_number, email, password, role_id, created_at, updated_at
+`
+
+type CreateUserParams struct {
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	PhoneNumber string `json:"phone_number"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	RoleID      int32  `json:"role_id"`
+}
+
+// Create Operations
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
+	_, err := q.db.ExecContext(ctx, createUser,
+		arg.FirstName,
+		arg.LastName,
+		arg.PhoneNumber,
+		arg.Email,
+		arg.Password,
+		arg.RoleID,
+	)
+	return err
+}
+
+const createWeekday = `-- name: CreateWeekday :exec
+INSERT INTO weekdays (service_id, name, start_time, end_time, max_clients)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type CreateWeekdayParams struct {
+	ServiceID  int32     `json:"service_id"`
+	Name       string    `json:"name"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	MaxClients int32     `json:"max_clients"`
+}
+
+func (q *Queries) CreateWeekday(ctx context.Context, arg CreateWeekdayParams) error {
+	_, err := q.db.ExecContext(ctx, createWeekday,
+		arg.ServiceID,
+		arg.Name,
+		arg.StartTime,
+		arg.EndTime,
+		arg.MaxClients,
+	)
+	return err
+}
+
+const deleteCategoryByID = `-- name: DeleteCategoryByID :exec
+DELETE FROM categories
+WHERE id = $1
+`
+
+func (q *Queries) DeleteCategoryByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteCategoryByID, id)
+	return err
+}
+
+const deleteComplaintByID = `-- name: DeleteComplaintByID :exec
+DELETE FROM complaints
+WHERE id = $1
+`
+
+func (q *Queries) DeleteComplaintByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteComplaintByID, id)
+	return err
+}
+
+const deleteRatingByID = `-- name: DeleteRatingByID :exec
+DELETE FROM ratings
+WHERE id = $1
+`
+
+func (q *Queries) DeleteRatingByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteRatingByID, id)
+	return err
+}
+
+const deleteReservationByID = `-- name: DeleteReservationByID :exec
+DELETE FROM reservations
+WHERE id = $1
+`
+
+func (q *Queries) DeleteReservationByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteReservationByID, id)
+	return err
+}
+
+const deleteRoleByID = `-- name: DeleteRoleByID :exec
+DELETE FROM roles
+WHERE id = $1
+`
+
+func (q *Queries) DeleteRoleByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteRoleByID, id)
+	return err
+}
+
+const deleteServiceByID = `-- name: DeleteServiceByID :exec
+DELETE FROM services
+WHERE id = $1
+`
+
+func (q *Queries) DeleteServiceByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteServiceByID, id)
+	return err
+}
+
+const deleteSubcategoryByID = `-- name: DeleteSubcategoryByID :exec
+DELETE FROM subcategories
+WHERE id = $1
+`
+
+func (q *Queries) DeleteSubcategoryByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteSubcategoryByID, id)
+	return err
+}
+
+const deleteUserByID = `-- name: DeleteUserByID :exec
+
+DELETE FROM users
+WHERE id = $1
+`
+
+// Delete Operations
+func (q *Queries) DeleteUserByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUserByID, id)
+	return err
+}
+
+const deleteWeekdayByID = `-- name: DeleteWeekdayByID :exec
+DELETE FROM weekdays
+WHERE id = $1
+`
+
+func (q *Queries) DeleteWeekdayByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteWeekdayByID, id)
+	return err
+}
+
+const getCategories = `-- name: GetCategories :many
+SELECT id, name, description, created_at, updated_at FROM categories
+`
+
+func (q *Queries) GetCategories(ctx context.Context) ([]Category, error) {
+	rows, err := q.db.QueryContext(ctx, getCategories)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []User
+	var items []Category
 	for rows.Next() {
-		var i User
+		var i Category
 		if err := rows.Scan(
 			&i.ID,
-			&i.FirstName,
-			&i.LastName,
-			&i.PhoneNumber,
-			&i.Email,
-			&i.Password,
-			&i.UserRole,
+			&i.Name,
+			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -44,4 +320,633 @@ func (q *Queries) GetUser(ctx context.Context, id int32) ([]User, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getCategoryByID = `-- name: GetCategoryByID :one
+SELECT id, name, description, created_at, updated_at FROM categories WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetCategoryByID(ctx context.Context, id int64) (Category, error) {
+	row := q.db.QueryRowContext(ctx, getCategoryByID, id)
+	var i Category
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getComplaintsByUserID = `-- name: GetComplaintsByUserID :many
+SELECT id, service_id, user_id, type, complaint, created_at, updated_at FROM complaints WHERE user_id = $1
+`
+
+func (q *Queries) GetComplaintsByUserID(ctx context.Context, userID int32) ([]Complaint, error) {
+	rows, err := q.db.QueryContext(ctx, getComplaintsByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Complaint
+	for rows.Next() {
+		var i Complaint
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.UserID,
+			&i.Type,
+			&i.Complaint,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRatingsByServiceID = `-- name: GetRatingsByServiceID :many
+SELECT id, service_id, user_id, rating, comment, created_at, updated_at FROM ratings WHERE service_id = $1
+`
+
+func (q *Queries) GetRatingsByServiceID(ctx context.Context, serviceID int32) ([]Rating, error) {
+	rows, err := q.db.QueryContext(ctx, getRatingsByServiceID, serviceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Rating
+	for rows.Next() {
+		var i Rating
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.UserID,
+			&i.Rating,
+			&i.Comment,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getReservationsByServiceID = `-- name: GetReservationsByServiceID :many
+SELECT id, service_id, user_id, time, weekday_id, ranking, created_at, updated_at FROM reservations WHERE service_id = $1
+`
+
+func (q *Queries) GetReservationsByServiceID(ctx context.Context, serviceID int32) ([]Reservation, error) {
+	rows, err := q.db.QueryContext(ctx, getReservationsByServiceID, serviceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Reservation
+	for rows.Next() {
+		var i Reservation
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.UserID,
+			&i.Time,
+			&i.WeekdayID,
+			&i.Ranking,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getReservationsByUserID = `-- name: GetReservationsByUserID :many
+SELECT id, service_id, user_id, time, weekday_id, ranking, created_at, updated_at FROM reservations WHERE user_id = $1
+`
+
+func (q *Queries) GetReservationsByUserID(ctx context.Context, userID int32) ([]Reservation, error) {
+	rows, err := q.db.QueryContext(ctx, getReservationsByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Reservation
+	for rows.Next() {
+		var i Reservation
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.UserID,
+			&i.Time,
+			&i.WeekdayID,
+			&i.Ranking,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getRoleByID = `-- name: GetRoleByID :one
+SELECT id, name, created_at, updated_at FROM roles WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetRoleByID(ctx context.Context, id int64) (Role, error) {
+	row := q.db.QueryRowContext(ctx, getRoleByID, id)
+	var i Role
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRoles = `-- name: GetRoles :many
+SELECT id, name, created_at, updated_at FROM roles
+`
+
+func (q *Queries) GetRoles(ctx context.Context) ([]Role, error) {
+	rows, err := q.db.QueryContext(ctx, getRoles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Role
+	for rows.Next() {
+		var i Role
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getServiceByID = `-- name: GetServiceByID :one
+SELECT id, user_id, description, google_map_address, willaya, baladia, created_at, updated_at FROM services WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetServiceByID(ctx context.Context, id int64) (Service, error) {
+	row := q.db.QueryRowContext(ctx, getServiceByID, id)
+	var i Service
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Description,
+		&i.GoogleMapAddress,
+		&i.Willaya,
+		&i.Baladia,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getServices = `-- name: GetServices :many
+SELECT id, user_id, description, google_map_address, willaya, baladia, created_at, updated_at FROM services
+`
+
+func (q *Queries) GetServices(ctx context.Context) ([]Service, error) {
+	rows, err := q.db.QueryContext(ctx, getServices)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Service
+	for rows.Next() {
+		var i Service
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Description,
+			&i.GoogleMapAddress,
+			&i.Willaya,
+			&i.Baladia,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSubcategories = `-- name: GetSubcategories :many
+SELECT id, name, description, category_id, created_at, updated_at FROM subcategories
+`
+
+func (q *Queries) GetSubcategories(ctx context.Context) ([]Subcategory, error) {
+	rows, err := q.db.QueryContext(ctx, getSubcategories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Subcategory
+	for rows.Next() {
+		var i Subcategory
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.CategoryID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSubcategoryByID = `-- name: GetSubcategoryByID :one
+SELECT id, name, description, category_id, created_at, updated_at FROM subcategories WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetSubcategoryByID(ctx context.Context, id int64) (Subcategory, error) {
+	row := q.db.QueryRowContext(ctx, getSubcategoryByID, id)
+	var i Subcategory
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CategoryID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+
+SELECT id, first_name, last_name, phone_number, email, password, role_id, created_at, updated_at FROM users WHERE id = $1 LIMIT 1
+`
+
+// Read Operations
+func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.PhoneNumber,
+		&i.Email,
+		&i.Password,
+		&i.RoleID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUsers = `-- name: GetUsers :many
+SELECT id, first_name, last_name, phone_number, email, password, role_id, created_at, updated_at FROM users
+`
+
+func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, getUsers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.FirstName,
+			&i.LastName,
+			&i.PhoneNumber,
+			&i.Email,
+			&i.Password,
+			&i.RoleID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getWeekdaysByServiceID = `-- name: GetWeekdaysByServiceID :many
+SELECT id, service_id, name, start_time, end_time, max_clients, created_at, updated_at FROM weekdays WHERE service_id = $1
+`
+
+func (q *Queries) GetWeekdaysByServiceID(ctx context.Context, serviceID int32) ([]Weekday, error) {
+	rows, err := q.db.QueryContext(ctx, getWeekdaysByServiceID, serviceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Weekday
+	for rows.Next() {
+		var i Weekday
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.Name,
+			&i.StartTime,
+			&i.EndTime,
+			&i.MaxClients,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateCategoryByID = `-- name: UpdateCategoryByID :exec
+UPDATE categories
+SET name = $1, description = $2, updated_at = CURRENT_TIMESTAMP
+WHERE id = $3
+`
+
+type UpdateCategoryByIDParams struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	ID          int64          `json:"id"`
+}
+
+func (q *Queries) UpdateCategoryByID(ctx context.Context, arg UpdateCategoryByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateCategoryByID, arg.Name, arg.Description, arg.ID)
+	return err
+}
+
+const updateComplaintByID = `-- name: UpdateComplaintByID :exec
+UPDATE complaints
+SET service_id = $1, user_id = $2, type = $3, complaint = $4, updated_at = CURRENT_TIMESTAMP
+WHERE id = $5
+`
+
+type UpdateComplaintByIDParams struct {
+	ServiceID int32  `json:"service_id"`
+	UserID    int32  `json:"user_id"`
+	Type      string `json:"type"`
+	Complaint string `json:"complaint"`
+	ID        int64  `json:"id"`
+}
+
+func (q *Queries) UpdateComplaintByID(ctx context.Context, arg UpdateComplaintByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateComplaintByID,
+		arg.ServiceID,
+		arg.UserID,
+		arg.Type,
+		arg.Complaint,
+		arg.ID,
+	)
+	return err
+}
+
+const updateRatingByID = `-- name: UpdateRatingByID :exec
+UPDATE ratings
+SET service_id = $1, user_id = $2, rating = $3, comment = $4, updated_at = CURRENT_TIMESTAMP
+WHERE id = $5
+`
+
+type UpdateRatingByIDParams struct {
+	ServiceID int32          `json:"service_id"`
+	UserID    int32          `json:"user_id"`
+	Rating    int32          `json:"rating"`
+	Comment   sql.NullString `json:"comment"`
+	ID        int64          `json:"id"`
+}
+
+func (q *Queries) UpdateRatingByID(ctx context.Context, arg UpdateRatingByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateRatingByID,
+		arg.ServiceID,
+		arg.UserID,
+		arg.Rating,
+		arg.Comment,
+		arg.ID,
+	)
+	return err
+}
+
+const updateReservationByID = `-- name: UpdateReservationByID :exec
+UPDATE reservations
+SET service_id = $1, user_id = $2, time = $3, weekday_id = $4, ranking = $5, updated_at = CURRENT_TIMESTAMP
+WHERE id = $6
+`
+
+type UpdateReservationByIDParams struct {
+	ServiceID int32         `json:"service_id"`
+	UserID    int32         `json:"user_id"`
+	Time      time.Time     `json:"time"`
+	WeekdayID int32         `json:"weekday_id"`
+	Ranking   sql.NullInt32 `json:"ranking"`
+	ID        int64         `json:"id"`
+}
+
+func (q *Queries) UpdateReservationByID(ctx context.Context, arg UpdateReservationByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateReservationByID,
+		arg.ServiceID,
+		arg.UserID,
+		arg.Time,
+		arg.WeekdayID,
+		arg.Ranking,
+		arg.ID,
+	)
+	return err
+}
+
+const updateRoleByID = `-- name: UpdateRoleByID :exec
+UPDATE roles
+SET name = $1, updated_at = CURRENT_TIMESTAMP
+WHERE id = $2
+`
+
+type UpdateRoleByIDParams struct {
+	Name string `json:"name"`
+	ID   int64  `json:"id"`
+}
+
+func (q *Queries) UpdateRoleByID(ctx context.Context, arg UpdateRoleByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateRoleByID, arg.Name, arg.ID)
+	return err
+}
+
+const updateServiceByID = `-- name: UpdateServiceByID :exec
+UPDATE services
+SET user_id = $1, description = $2, google_map_address = $3, willaya = $4, baladia = $5, updated_at = CURRENT_TIMESTAMP
+WHERE id = $6
+`
+
+type UpdateServiceByIDParams struct {
+	UserID           int32          `json:"user_id"`
+	Description      sql.NullString `json:"description"`
+	GoogleMapAddress sql.NullString `json:"google_map_address"`
+	Willaya          sql.NullString `json:"willaya"`
+	Baladia          sql.NullString `json:"baladia"`
+	ID               int64          `json:"id"`
+}
+
+func (q *Queries) UpdateServiceByID(ctx context.Context, arg UpdateServiceByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateServiceByID,
+		arg.UserID,
+		arg.Description,
+		arg.GoogleMapAddress,
+		arg.Willaya,
+		arg.Baladia,
+		arg.ID,
+	)
+	return err
+}
+
+const updateSubcategoryByID = `-- name: UpdateSubcategoryByID :exec
+UPDATE subcategories
+SET name = $1, description = $2, category_id = $3, updated_at = CURRENT_TIMESTAMP
+WHERE id = $4
+`
+
+type UpdateSubcategoryByIDParams struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	CategoryID  int32          `json:"category_id"`
+	ID          int64          `json:"id"`
+}
+
+func (q *Queries) UpdateSubcategoryByID(ctx context.Context, arg UpdateSubcategoryByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateSubcategoryByID,
+		arg.Name,
+		arg.Description,
+		arg.CategoryID,
+		arg.ID,
+	)
+	return err
+}
+
+const updateUserByID = `-- name: UpdateUserByID :exec
+
+UPDATE users
+SET first_name = $1, last_name = $2, phone_number = $3, email = $4, password = $5, role_id = $6, updated_at = CURRENT_TIMESTAMP
+WHERE id = $7
+`
+
+type UpdateUserByIDParams struct {
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	PhoneNumber string `json:"phone_number"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	RoleID      int32  `json:"role_id"`
+	ID          int64  `json:"id"`
+}
+
+// Update Operations
+func (q *Queries) UpdateUserByID(ctx context.Context, arg UpdateUserByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserByID,
+		arg.FirstName,
+		arg.LastName,
+		arg.PhoneNumber,
+		arg.Email,
+		arg.Password,
+		arg.RoleID,
+		arg.ID,
+	)
+	return err
+}
+
+const updateWeekdayByID = `-- name: UpdateWeekdayByID :exec
+UPDATE weekdays
+SET service_id = $1, name = $2, start_time = $3, end_time = $4, max_clients = $5, updated_at = CURRENT_TIMESTAMP
+WHERE id = $6
+`
+
+type UpdateWeekdayByIDParams struct {
+	ServiceID  int32     `json:"service_id"`
+	Name       string    `json:"name"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	MaxClients int32     `json:"max_clients"`
+	ID         int64     `json:"id"`
+}
+
+func (q *Queries) UpdateWeekdayByID(ctx context.Context, arg UpdateWeekdayByIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateWeekdayByID,
+		arg.ServiceID,
+		arg.Name,
+		arg.StartTime,
+		arg.EndTime,
+		arg.MaxClients,
+		arg.ID,
+	)
+	return err
 }

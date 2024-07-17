@@ -2,8 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
+	"mawa3id/DB"
+	"mawa3id/api"
 	"net/url"
 	"os"
 
@@ -27,18 +28,10 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
-
-	rows, err := db.Query("SELECT version()")
+	queries := DB.New(db)
+	_, err = api.Init(queries)
 	if err != nil {
 		panic(err)
 	}
-
-	for rows.Next() {
-		var result string
-		err = rows.Scan(&result)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("Version: %s\n", result)
-	}
+	defer db.Close()
 }
