@@ -1,9 +1,10 @@
-schema, err := ioutil.ReadFile("schema.sql")
-// if err != nil {
-// 	log.Fatal(err)
-// }
+    schema, err := ioutil.ReadFile("schema.sql")
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// // Execute the schema creation
-// if _, err := db.Exec(string(schema)); err != nil {
-// 	log.Fatal(err)
-// }
+	// Execute the schema creation
+	if _, err := db.Exec(string(schema)); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Successfully created schema")

@@ -28,6 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
+
 	queries := DB.New(db)
 	_, err = api.Init(queries)
 	if err != nil {
