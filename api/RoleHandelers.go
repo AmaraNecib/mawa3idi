@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"mawa3id/DB"
 	auth "mawa3id/jwt"
-	"mawa3id/statics"
+	"mawa3id/static"
 	"strconv"
 	"strings"
 
@@ -83,7 +83,7 @@ func UpdateRoleByID(db *DB.Queries) fiber.Handler {
 		token := strings.Split(string(ctx.Get("Authorization")), " ")[1]
 		UserRole, err := auth.GetUserRole((string(token)))
 		fmt.Print(UserRole, err)
-		if UserRole != statics.Admin || err != nil {
+		if UserRole != static.Admin || err != nil {
 			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": "Unauthorized",

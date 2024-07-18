@@ -1,4 +1,4 @@
-package statics
+package static
 
 var Admin = "admin"
 

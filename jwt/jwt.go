@@ -2,7 +2,7 @@ package auth
 
 import (
 	"fmt"
-	"mawa3id/statics"
+	"mawa3id/static"
 	"os"
 	"time"
 
@@ -53,7 +53,7 @@ func CreateToken(id int, role string) (string, error) {
 	claims := Claims{
 		ID:   id,
 		Role: role,
-		Exp:  time.Now().Add(time.Hour * 24 * time.Duration(statics.ValidTokenDays)).Unix(),
+		Exp:  time.Now().Add(time.Hour * 24 * time.Duration(static.ValidTokenDays)).Unix(),
 	}
 	return encrypt(claims)
 }
