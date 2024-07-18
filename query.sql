@@ -1,9 +1,9 @@
 -- Create Operations
 
--- name: CreateUser :exec
+-- name: CreateUser :one
 INSERT INTO users (first_name, last_name, phone_number, email, password, role_id)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING *;
+RETURNING id,first_name, last_name, phone_number, email, role_id, created_at, updated_at;
 
 -- name: CreateRole :exec
 INSERT INTO roles (name)
@@ -42,6 +42,23 @@ VALUES ($1, $2, $3, $4);
 -- name: GetUserByID :one
 SELECT * FROM users WHERE id = $1 LIMIT 1;
 
+-- name: GetUserByEmail :one
+SELECT users.*, roles.name AS role_name
+FROM users
+JOIN roles ON users.role_id = roles.id
+WHERE users.email = $1 LIMIT 1;
+
+-- name: GetUserIDByEmail :one
+SELECT id FROM users WHERE email = $1 LIMIT 1;
+
+-- name: GetUserByEmailAndPassword :one
+SELECT users.*, roles.name AS role_name
+FROM users
+JOIN roles ON users.role_id = roles.id
+WHERE users.email = $1 AND users.password = $2
+LIMIT 1;
+
+
 -- name: GetUsers :many
 SELECT * FROM users;
 
@@ -70,7 +87,7 @@ SELECT * FROM weekdays WHERE service_id = $1;
 SELECT * FROM services WHERE id = $1 LIMIT 1;
 
 -- name: GetServices :many
-SELECT * FROM services;
+SELECT * FROM services ORDER BY id DESC;
 
 -- name: GetReservationsByUserID :many
 SELECT * FROM reservations WHERE user_id = $1;
@@ -140,6 +157,8 @@ WHERE id = $1;
 -- name: DeleteRoleByID :exec
 DELETE FROM roles
 WHERE id = $1;
+-- name: DelteAllRoles :exec
+DELETE FROM roles;
 
 -- name: DeleteCategoryByID :exec
 DELETE FROM categories
@@ -168,3 +187,13 @@ WHERE id = $1;
 -- name: DeleteComplaintByID :exec
 DELETE FROM complaints
 WHERE id = $1;
+
+-- name: CreateReserveType :one
+
+INSERT INTO reserve_types (name) VALUES ($1) RETURNING *;
+
+-- name: GetReserveTypes :many
+SELECT * FROM reserve_types;
+
+-- name: DeleteReserveTypeByID :exec
+DELETE FROM reserve_types WHERE id = $1;

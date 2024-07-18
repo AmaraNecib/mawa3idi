@@ -94,6 +94,23 @@ func (q *Queries) CreateReservation(ctx context.Context, arg CreateReservationPa
 	return err
 }
 
+const createReserveType = `-- name: CreateReserveType :one
+
+INSERT INTO reserve_types (name) VALUES ($1) RETURNING id, name, created_at, updated_at
+`
+
+func (q *Queries) CreateReserveType(ctx context.Context, name string) (ReserveType, error) {
+	row := q.db.QueryRowContext(ctx, createReserveType, name)
+	var i ReserveType
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const createRole = `-- name: CreateRole :exec
 INSERT INTO roles (name)
 VALUES ($1)
@@ -110,11 +127,11 @@ VALUES ($1, $2, $3, $4, $5)
 `
 
 type CreateServiceParams struct {
-	UserID           int32          `json:"user_id"`
-	Description      sql.NullString `json:"description"`
-	GoogleMapAddress sql.NullString `json:"google_map_address"`
-	Willaya          sql.NullString `json:"willaya"`
-	Baladia          sql.NullString `json:"baladia"`
+	UserID           int32  `json:"user_id"`
+	Description      string `json:"description"`
+	GoogleMapAddress string `json:"google_map_address"`
+	Willaya          string `json:"willaya"`
+	Baladia          string `json:"baladia"`
 }
 
 func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) error {
@@ -144,11 +161,11 @@ func (q *Queries) CreateSubcategory(ctx context.Context, arg CreateSubcategoryPa
 	return err
 }
 
-const createUser = `-- name: CreateUser :exec
+const createUser = `-- name: CreateUser :one
 
 INSERT INTO users (first_name, last_name, phone_number, email, password, role_id)
 VALUES ($1, $2, $3, $4, $5, $6)
-RETURNING id, first_name, last_name, phone_number, email, password, role_id, created_at, updated_at
+RETURNING id,first_name, last_name, phone_number, email, role_id, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -160,9 +177,20 @@ type CreateUserParams struct {
 	RoleID      int32  `json:"role_id"`
 }
 
+type CreateUserRow struct {
+	ID          int64        `json:"id"`
+	FirstName   string       `json:"first_name"`
+	LastName    string       `json:"last_name"`
+	PhoneNumber string       `json:"phone_number"`
+	Email       string       `json:"email"`
+	RoleID      int32        `json:"role_id"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
+}
+
 // Create Operations
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
-	_, err := q.db.ExecContext(ctx, createUser,
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
 		arg.FirstName,
 		arg.LastName,
 		arg.PhoneNumber,
@@ -170,7 +198,18 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 		arg.Password,
 		arg.RoleID,
 	)
-	return err
+	var i CreateUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.PhoneNumber,
+		&i.Email,
+		&i.RoleID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const createWeekday = `-- name: CreateWeekday :exec
@@ -237,6 +276,15 @@ func (q *Queries) DeleteReservationByID(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteReserveTypeByID = `-- name: DeleteReserveTypeByID :exec
+DELETE FROM reserve_types WHERE id = $1
+`
+
+func (q *Queries) DeleteReserveTypeByID(ctx context.Context, id int64) error {
+	_, err := q.db.ExecContext(ctx, deleteReserveTypeByID, id)
+	return err
+}
+
 const deleteRoleByID = `-- name: DeleteRoleByID :exec
 DELETE FROM roles
 WHERE id = $1
@@ -286,6 +334,15 @@ WHERE id = $1
 
 func (q *Queries) DeleteWeekdayByID(ctx context.Context, id int64) error {
 	_, err := q.db.ExecContext(ctx, deleteWeekdayByID, id)
+	return err
+}
+
+const delteAllRoles = `-- name: DelteAllRoles :exec
+DELETE FROM roles
+`
+
+func (q *Queries) DelteAllRoles(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, delteAllRoles)
 	return err
 }
 
@@ -410,7 +467,7 @@ func (q *Queries) GetRatingsByServiceID(ctx context.Context, serviceID int32) ([
 }
 
 const getReservationsByServiceID = `-- name: GetReservationsByServiceID :many
-SELECT id, service_id, user_id, time, weekday_id, ranking, created_at, updated_at FROM reservations WHERE service_id = $1
+SELECT id, service_id, user_id, time, weekday_id, ranking, reserve_type, created_at, updated_at FROM reservations WHERE service_id = $1
 `
 
 func (q *Queries) GetReservationsByServiceID(ctx context.Context, serviceID int32) ([]Reservation, error) {
@@ -429,6 +486,7 @@ func (q *Queries) GetReservationsByServiceID(ctx context.Context, serviceID int3
 			&i.Time,
 			&i.WeekdayID,
 			&i.Ranking,
+			&i.ReserveType,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -446,7 +504,7 @@ func (q *Queries) GetReservationsByServiceID(ctx context.Context, serviceID int3
 }
 
 const getReservationsByUserID = `-- name: GetReservationsByUserID :many
-SELECT id, service_id, user_id, time, weekday_id, ranking, created_at, updated_at FROM reservations WHERE user_id = $1
+SELECT id, service_id, user_id, time, weekday_id, ranking, reserve_type, created_at, updated_at FROM reservations WHERE user_id = $1
 `
 
 func (q *Queries) GetReservationsByUserID(ctx context.Context, userID int32) ([]Reservation, error) {
@@ -465,6 +523,39 @@ func (q *Queries) GetReservationsByUserID(ctx context.Context, userID int32) ([]
 			&i.Time,
 			&i.WeekdayID,
 			&i.Ranking,
+			&i.ReserveType,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getReserveTypes = `-- name: GetReserveTypes :many
+SELECT id, name, created_at, updated_at FROM reserve_types
+`
+
+func (q *Queries) GetReserveTypes(ctx context.Context) ([]ReserveType, error) {
+	rows, err := q.db.QueryContext(ctx, getReserveTypes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ReserveType
+	for rows.Next() {
+		var i ReserveType
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -530,7 +621,7 @@ func (q *Queries) GetRoles(ctx context.Context) ([]Role, error) {
 }
 
 const getServiceByID = `-- name: GetServiceByID :one
-SELECT id, user_id, description, google_map_address, willaya, baladia, created_at, updated_at FROM services WHERE id = $1 LIMIT 1
+SELECT id, user_id, description, category_id, google_map_address, willaya, baladia, created_at, updated_at FROM services WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetServiceByID(ctx context.Context, id int64) (Service, error) {
@@ -540,6 +631,7 @@ func (q *Queries) GetServiceByID(ctx context.Context, id int64) (Service, error)
 		&i.ID,
 		&i.UserID,
 		&i.Description,
+		&i.CategoryID,
 		&i.GoogleMapAddress,
 		&i.Willaya,
 		&i.Baladia,
@@ -550,7 +642,7 @@ func (q *Queries) GetServiceByID(ctx context.Context, id int64) (Service, error)
 }
 
 const getServices = `-- name: GetServices :many
-SELECT id, user_id, description, google_map_address, willaya, baladia, created_at, updated_at FROM services
+SELECT id, user_id, description, category_id, google_map_address, willaya, baladia, created_at, updated_at FROM services ORDER BY id DESC
 `
 
 func (q *Queries) GetServices(ctx context.Context) ([]Service, error) {
@@ -566,6 +658,7 @@ func (q *Queries) GetServices(ctx context.Context) ([]Service, error) {
 			&i.ID,
 			&i.UserID,
 			&i.Description,
+			&i.CategoryID,
 			&i.GoogleMapAddress,
 			&i.Willaya,
 			&i.Baladia,
@@ -637,6 +730,88 @@ func (q *Queries) GetSubcategoryByID(ctx context.Context, id int64) (Subcategory
 	return i, err
 }
 
+const getUserByEmail = `-- name: GetUserByEmail :one
+SELECT users.id, users.first_name, users.last_name, users.phone_number, users.email, users.password, users.role_id, users.created_at, users.updated_at, roles.name AS role_name
+FROM users
+JOIN roles ON users.role_id = roles.id
+WHERE users.email = $1 LIMIT 1
+`
+
+type GetUserByEmailRow struct {
+	ID          int64        `json:"id"`
+	FirstName   string       `json:"first_name"`
+	LastName    string       `json:"last_name"`
+	PhoneNumber string       `json:"phone_number"`
+	Email       string       `json:"email"`
+	Password    string       `json:"password"`
+	RoleID      int32        `json:"role_id"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
+	RoleName    string       `json:"role_name"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	var i GetUserByEmailRow
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.PhoneNumber,
+		&i.Email,
+		&i.Password,
+		&i.RoleID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.RoleName,
+	)
+	return i, err
+}
+
+const getUserByEmailAndPassword = `-- name: GetUserByEmailAndPassword :one
+SELECT users.id, users.first_name, users.last_name, users.phone_number, users.email, users.password, users.role_id, users.created_at, users.updated_at, roles.name AS role_name
+FROM users
+JOIN roles ON users.role_id = roles.id
+WHERE users.email = $1 AND users.password = $2
+LIMIT 1
+`
+
+type GetUserByEmailAndPasswordParams struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type GetUserByEmailAndPasswordRow struct {
+	ID          int64        `json:"id"`
+	FirstName   string       `json:"first_name"`
+	LastName    string       `json:"last_name"`
+	PhoneNumber string       `json:"phone_number"`
+	Email       string       `json:"email"`
+	Password    string       `json:"password"`
+	RoleID      int32        `json:"role_id"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
+	RoleName    string       `json:"role_name"`
+}
+
+func (q *Queries) GetUserByEmailAndPassword(ctx context.Context, arg GetUserByEmailAndPasswordParams) (GetUserByEmailAndPasswordRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByEmailAndPassword, arg.Email, arg.Password)
+	var i GetUserByEmailAndPasswordRow
+	err := row.Scan(
+		&i.ID,
+		&i.FirstName,
+		&i.LastName,
+		&i.PhoneNumber,
+		&i.Email,
+		&i.Password,
+		&i.RoleID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.RoleName,
+	)
+	return i, err
+}
+
 const getUserByID = `-- name: GetUserByID :one
 
 SELECT id, first_name, last_name, phone_number, email, password, role_id, created_at, updated_at FROM users WHERE id = $1 LIMIT 1
@@ -658,6 +833,17 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getUserIDByEmail = `-- name: GetUserIDByEmail :one
+SELECT id FROM users WHERE email = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserIDByEmail(ctx context.Context, email string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getUserIDByEmail, email)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getUsers = `-- name: GetUsers :many
@@ -850,12 +1036,12 @@ WHERE id = $6
 `
 
 type UpdateServiceByIDParams struct {
-	UserID           int32          `json:"user_id"`
-	Description      sql.NullString `json:"description"`
-	GoogleMapAddress sql.NullString `json:"google_map_address"`
-	Willaya          sql.NullString `json:"willaya"`
-	Baladia          sql.NullString `json:"baladia"`
-	ID               int64          `json:"id"`
+	UserID           int32  `json:"user_id"`
+	Description      string `json:"description"`
+	GoogleMapAddress string `json:"google_map_address"`
+	Willaya          string `json:"willaya"`
+	Baladia          string `json:"baladia"`
+	ID               int64  `json:"id"`
 }
 
 func (q *Queries) UpdateServiceByID(ctx context.Context, arg UpdateServiceByIDParams) error {

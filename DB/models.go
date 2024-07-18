@@ -38,14 +38,22 @@ type Rating struct {
 }
 
 type Reservation struct {
-	ID        int64         `json:"id"`
-	ServiceID int32         `json:"service_id"`
-	UserID    int32         `json:"user_id"`
-	Time      time.Time     `json:"time"`
-	WeekdayID int32         `json:"weekday_id"`
-	Ranking   sql.NullInt32 `json:"ranking"`
-	CreatedAt sql.NullTime  `json:"created_at"`
-	UpdatedAt sql.NullTime  `json:"updated_at"`
+	ID          int64         `json:"id"`
+	ServiceID   int32         `json:"service_id"`
+	UserID      int32         `json:"user_id"`
+	Time        time.Time     `json:"time"`
+	WeekdayID   int32         `json:"weekday_id"`
+	Ranking     sql.NullInt32 `json:"ranking"`
+	ReserveType sql.NullInt32 `json:"reserve_type"`
+	CreatedAt   sql.NullTime  `json:"created_at"`
+	UpdatedAt   sql.NullTime  `json:"updated_at"`
+}
+
+type ReserveType struct {
+	ID        int64        `json:"id"`
+	Name      string       `json:"name"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
 }
 
 type Role struct {
@@ -56,14 +64,15 @@ type Role struct {
 }
 
 type Service struct {
-	ID               int64          `json:"id"`
-	UserID           int32          `json:"user_id"`
-	Description      sql.NullString `json:"description"`
-	GoogleMapAddress sql.NullString `json:"google_map_address"`
-	Willaya          sql.NullString `json:"willaya"`
-	Baladia          sql.NullString `json:"baladia"`
-	CreatedAt        sql.NullTime   `json:"created_at"`
-	UpdatedAt        sql.NullTime   `json:"updated_at"`
+	ID               int64        `json:"id"`
+	UserID           int32        `json:"user_id"`
+	Description      string       `json:"description"`
+	CategoryID       int32        `json:"category_id"`
+	GoogleMapAddress string       `json:"google_map_address"`
+	Willaya          string       `json:"willaya"`
+	Baladia          string       `json:"baladia"`
+	CreatedAt        sql.NullTime `json:"created_at"`
+	UpdatedAt        sql.NullTime `json:"updated_at"`
 }
 
 type Subcategory struct {
