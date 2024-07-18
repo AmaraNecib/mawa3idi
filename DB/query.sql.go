@@ -17,8 +17,8 @@ VALUES ($1, $2)
 `
 
 type CreateCategoryParams struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) error {
@@ -151,9 +151,9 @@ VALUES ($1, $2, $3)
 `
 
 type CreateSubcategoryParams struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	CategoryID  int32          `json:"category_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	CategoryID  int32  `json:"category_id"`
 }
 
 func (q *Queries) CreateSubcategory(ctx context.Context, arg CreateSubcategoryParams) error {
@@ -679,18 +679,30 @@ func (q *Queries) GetServices(ctx context.Context) ([]Service, error) {
 }
 
 const getSubcategories = `-- name: GetSubcategories :many
-SELECT id, name, description, category_id, created_at, updated_at FROM subcategories
+SELECT subcategories.id, subcategories.name, subcategories.description, subcategories.category_id, subcategories.created_at, subcategories.updated_at, categories.name AS category_name
+FROM subcategories
+JOIN categories ON subcategories.category_id = categories.id
 `
 
-func (q *Queries) GetSubcategories(ctx context.Context) ([]Subcategory, error) {
+type GetSubcategoriesRow struct {
+	ID           int64        `json:"id"`
+	Name         string       `json:"name"`
+	Description  string       `json:"description"`
+	CategoryID   int32        `json:"category_id"`
+	CreatedAt    sql.NullTime `json:"created_at"`
+	UpdatedAt    sql.NullTime `json:"updated_at"`
+	CategoryName string       `json:"category_name"`
+}
+
+func (q *Queries) GetSubcategories(ctx context.Context) ([]GetSubcategoriesRow, error) {
 	rows, err := q.db.QueryContext(ctx, getSubcategories)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Subcategory
+	var items []GetSubcategoriesRow
 	for rows.Next() {
-		var i Subcategory
+		var i GetSubcategoriesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -698,6 +710,7 @@ func (q *Queries) GetSubcategories(ctx context.Context) ([]Subcategory, error) {
 			&i.CategoryID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CategoryName,
 		); err != nil {
 			return nil, err
 		}
@@ -926,9 +939,9 @@ WHERE id = $3
 `
 
 type UpdateCategoryByIDParams struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	ID          int64          `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	ID          int64  `json:"id"`
 }
 
 func (q *Queries) UpdateCategoryByID(ctx context.Context, arg UpdateCategoryByIDParams) error {
@@ -1063,10 +1076,10 @@ WHERE id = $4
 `
 
 type UpdateSubcategoryByIDParams struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	CategoryID  int32          `json:"category_id"`
-	ID          int64          `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	CategoryID  int32  `json:"category_id"`
+	ID          int64  `json:"id"`
 }
 
 func (q *Queries) UpdateSubcategoryByID(ctx context.Context, arg UpdateSubcategoryByIDParams) error {

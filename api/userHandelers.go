@@ -18,6 +18,12 @@ func CreateUser(db *DB.Queries) fiber.Handler {
 				"error": err,
 			})
 		}
+		if user.Email == "" || user.Password == "" || user.FirstName == "" || user.LastName == "" || user.PhoneNumber == "" || user.RoleID == 0 {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "All fields are required",
+			})
+		}
 		hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{

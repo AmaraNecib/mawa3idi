@@ -51,12 +51,13 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	// category
 	v1.Post("/category", CreateCategory(db))
 	// get all categories
-	// v1.Get("/category", GetAllCategories(db))
-	// v1.Delete("/category/:id", DeleteCategory(db))
+	v1.Get("/category", GetAllCategories(db))
+	v1.Put("/category/:id", UpdateCategoryByID(db))
+	v1.Delete("/category/:id", DeleteCategory(db))
 	// subcategory
-	// v1.Post("/subcategory", CreateSubCategory(db))
+	v1.Post("/subcategory", CreateSubCategory(db))
 	// get all subcategories
-	// v1.Get("/subcategory", GetAllSubCategories(db))
+	v1.Get("/subcategory", GetAllSubCategories(db))
 	// v1.Delete("/subcategory/:id", DeleteSubCategory(db))
 
 	// get all users

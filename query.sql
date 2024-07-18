@@ -78,7 +78,9 @@ SELECT * FROM categories;
 SELECT * FROM subcategories WHERE id = $1 LIMIT 1;
 
 -- name: GetSubcategories :many
-SELECT * FROM subcategories;
+SELECT subcategories.*, categories.name AS category_name
+FROM subcategories
+JOIN categories ON subcategories.category_id = categories.id;
 
 -- name: GetWeekdaysByServiceID :many
 SELECT * FROM weekdays WHERE service_id = $1;
