@@ -17,13 +17,13 @@ VALUES ($1, $2);
 INSERT INTO subcategories (name, description, category_id)
 VALUES ($1, $2, $3);
 
--- name: CreateWeekday :exec
-INSERT INTO weekdays (service_id, name, start_time, end_time, max_clients)
-VALUES ($1, $2, $3, $4, $5);
+-- name: CreateWorkday :exec
+INSERT INTO weekdays (service_id, name, start_time, end_time, max_clients,day_id)
+VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: CreateService :exec
-INSERT INTO services (user_id, description, google_map_address, willaya, baladia)
-VALUES ($1, $2, $3, $4, $5);
+INSERT INTO services (user_id, description, google_map_address, willaya, baladia, subcategory_id)
+VALUES ($1, $2, $3, $4, $5, $6);
 
 -- name: CreateReservation :exec
 INSERT INTO reservations (service_id, user_id, time, weekday_id, ranking)
@@ -36,6 +36,9 @@ VALUES ($1, $2, $3, $4);
 -- name: CreateComplaint :exec
 INSERT INTO complaints (service_id, user_id, type, complaint)
 VALUES ($1, $2, $3, $4);
+
+-- name: CreateDay :exec
+INSERT INTO days (name) VALUES ($1);
 
 -- Read Operations
 
@@ -76,7 +79,8 @@ SELECT * FROM categories;
 
 -- name: GetSubcategoryByID :one
 SELECT * FROM subcategories WHERE id = $1 LIMIT 1;
-
+-- name: GetServiceByUserID :many
+SELECT * FROM services WHERE user_id = $1 LIMIT 1;
 -- name: GetSubcategories :many
 SELECT subcategories.*, categories.name AS category_name
 FROM subcategories
@@ -199,3 +203,17 @@ SELECT * FROM reserve_types;
 
 -- name: DeleteReserveTypeByID :exec
 DELETE FROM reserve_types WHERE id = $1;
+
+
+-- name: GetDaysOfWorkByServiceID :many
+SELECT weekdays.* FROM weekdays JOIN services ON weekdays.service_id = services.id WHERE services.id = $1;
+
+
+-- name: GetAllDays :many
+SELECT * FROM days;
+
+-- name: GetWorkdays :many
+SELECT * FROM weekdays;
+
+-- name: GetWorkdaysByServiceID :many
+SELECT * FROM weekdays WHERE service_id = $1;

@@ -27,6 +27,13 @@ type Complaint struct {
 	UpdatedAt sql.NullTime `json:"updated_at"`
 }
 
+type Day struct {
+	ID        int64        `json:"id"`
+	Name      string       `json:"name"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}
+
 type Rating struct {
 	ID        int64          `json:"id"`
 	ServiceID int32          `json:"service_id"`
@@ -67,7 +74,7 @@ type Service struct {
 	ID               int64        `json:"id"`
 	UserID           int32        `json:"user_id"`
 	Description      string       `json:"description"`
-	CategoryID       int32        `json:"category_id"`
+	SubcategoryID    int32        `json:"subcategory_id"`
 	GoogleMapAddress string       `json:"google_map_address"`
 	Willaya          string       `json:"willaya"`
 	Baladia          string       `json:"baladia"`
@@ -100,6 +107,7 @@ type Weekday struct {
 	ID         int64        `json:"id"`
 	ServiceID  int32        `json:"service_id"`
 	Name       string       `json:"name"`
+	DayID      int32        `json:"day_id"`
 	StartTime  time.Time    `json:"start_time"`
 	EndTime    time.Time    `json:"end_time"`
 	MaxClients int32        `json:"max_clients"`

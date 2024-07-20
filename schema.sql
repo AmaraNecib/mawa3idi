@@ -2,8 +2,8 @@
 CREATE TABLE IF NOT EXISTS roles (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW()
 );
 -- إنشاء جدول المستخدمين
 CREATE TABLE IF NOT EXISTS users (
@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(100) NOT NULL,
     role_id INT NOT NULL,
     -- date of creation like this 2024-07-17 13:18:36z
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW(),
     FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS categories (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW()
 );
 
 -- إنشاء جدول الأصناف الفرعية
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS subcategories (
     description TEXT NOT NULL,
     category_id INT NOT NULL,
     FOREIGN KEY (category_id) REFERENCES categories(id),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW()
 );
 
 -- إنشاء جدول الخدمات
@@ -46,34 +46,41 @@ CREATE TABLE IF NOT EXISTS services (
     id BIGSERIAL PRIMARY KEY,
     user_id INT NOT NULL,
     description TEXT NOT NULL,
-    category_id INT NOT NULL,
+    subcategory_id INT NOT NULL,
     google_map_address VARCHAR(255) NOT NULL,
     willaya VARCHAR(50) NOT NULL,
     baladia VARCHAR(50) NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    FOREIGN KEY (category_id) REFERENCES subcategories(id)
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW(),
+    FOREIGN KEY (subcategory_id) REFERENCES subcategories(id)
 );
-
+CREATE TABLE IF NOT EXISTS days (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW()
+);
 -- إنشاء جدول أيام الأسبوع
 CREATE TABLE IF NOT EXISTS weekdays (
     id BIGSERIAL PRIMARY KEY,
     service_id INT NOT NULL,
     name VARCHAR(20) NOT NULL,
+    day_id INT NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     max_clients INT NOT NULL,
     FOREIGN KEY (service_id) REFERENCES services(id),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW(),
+    FOREIGN KEY (day_id) REFERENCES days(id)
 );
 -- reserve type
 CREATE TABLE IF NOT EXISTS reserve_types (
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW()
 );
 
 -- إنشاء جدول الحجوزات
@@ -85,8 +92,8 @@ CREATE TABLE IF NOT EXISTS reservations (
     weekday_id INT NOT NULL, 
     ranking INT DEFAULT 0,
     reserve_type INT DEFAULT 1,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW(),
     FOREIGN KEY (service_id) REFERENCES services(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (weekday_id) REFERENCES weekdays(id),
@@ -103,8 +110,8 @@ CREATE TABLE IF NOT EXISTS ratings (
     comment TEXT,
     FOREIGN KEY (service_id) REFERENCES services(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW()
 );
 
 -- table for complaints
@@ -116,6 +123,6 @@ CREATE TABLE IF NOT EXISTS complaints (
     complaint TEXT NOT NULL,
     FOREIGN KEY (service_id) REFERENCES services(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW()
 );

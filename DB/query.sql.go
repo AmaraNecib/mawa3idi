@@ -48,6 +48,15 @@ func (q *Queries) CreateComplaint(ctx context.Context, arg CreateComplaintParams
 	return err
 }
 
+const createDay = `-- name: CreateDay :exec
+INSERT INTO days (name) VALUES ($1)
+`
+
+func (q *Queries) CreateDay(ctx context.Context, name string) error {
+	_, err := q.db.ExecContext(ctx, createDay, name)
+	return err
+}
+
 const createRating = `-- name: CreateRating :exec
 INSERT INTO ratings (service_id, user_id, rating, comment)
 VALUES ($1, $2, $3, $4)
@@ -122,8 +131,8 @@ func (q *Queries) CreateRole(ctx context.Context, name string) error {
 }
 
 const createService = `-- name: CreateService :exec
-INSERT INTO services (user_id, description, google_map_address, willaya, baladia)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO services (user_id, description, google_map_address, willaya, baladia, subcategory_id)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
 type CreateServiceParams struct {
@@ -132,6 +141,7 @@ type CreateServiceParams struct {
 	GoogleMapAddress string `json:"google_map_address"`
 	Willaya          string `json:"willaya"`
 	Baladia          string `json:"baladia"`
+	SubcategoryID    int32  `json:"subcategory_id"`
 }
 
 func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) error {
@@ -141,6 +151,7 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) er
 		arg.GoogleMapAddress,
 		arg.Willaya,
 		arg.Baladia,
+		arg.SubcategoryID,
 	)
 	return err
 }
@@ -212,26 +223,28 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	return i, err
 }
 
-const createWeekday = `-- name: CreateWeekday :exec
-INSERT INTO weekdays (service_id, name, start_time, end_time, max_clients)
-VALUES ($1, $2, $3, $4, $5)
+const createWorkday = `-- name: CreateWorkday :exec
+INSERT INTO weekdays (service_id, name, start_time, end_time, max_clients,day_id)
+VALUES ($1, $2, $3, $4, $5, $6)
 `
 
-type CreateWeekdayParams struct {
+type CreateWorkdayParams struct {
 	ServiceID  int32     `json:"service_id"`
 	Name       string    `json:"name"`
 	StartTime  time.Time `json:"start_time"`
 	EndTime    time.Time `json:"end_time"`
 	MaxClients int32     `json:"max_clients"`
+	DayID      int32     `json:"day_id"`
 }
 
-func (q *Queries) CreateWeekday(ctx context.Context, arg CreateWeekdayParams) error {
-	_, err := q.db.ExecContext(ctx, createWeekday,
+func (q *Queries) CreateWorkday(ctx context.Context, arg CreateWorkdayParams) error {
+	_, err := q.db.ExecContext(ctx, createWorkday,
 		arg.ServiceID,
 		arg.Name,
 		arg.StartTime,
 		arg.EndTime,
 		arg.MaxClients,
+		arg.DayID,
 	)
 	return err
 }
@@ -346,6 +359,38 @@ func (q *Queries) DelteAllRoles(ctx context.Context) error {
 	return err
 }
 
+const getAllDays = `-- name: GetAllDays :many
+SELECT id, name, created_at, updated_at FROM days
+`
+
+func (q *Queries) GetAllDays(ctx context.Context) ([]Day, error) {
+	rows, err := q.db.QueryContext(ctx, getAllDays)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Day
+	for rows.Next() {
+		var i Day
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCategories = `-- name: GetCategories :many
 SELECT id, name, description, created_at, updated_at FROM categories
 `
@@ -415,6 +460,43 @@ func (q *Queries) GetComplaintsByUserID(ctx context.Context, userID int32) ([]Co
 			&i.UserID,
 			&i.Type,
 			&i.Complaint,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDaysOfWorkByServiceID = `-- name: GetDaysOfWorkByServiceID :many
+SELECT weekdays.id, weekdays.service_id, weekdays.name, weekdays.day_id, weekdays.start_time, weekdays.end_time, weekdays.max_clients, weekdays.created_at, weekdays.updated_at FROM weekdays JOIN services ON weekdays.service_id = services.id WHERE services.id = $1
+`
+
+func (q *Queries) GetDaysOfWorkByServiceID(ctx context.Context, id int64) ([]Weekday, error) {
+	rows, err := q.db.QueryContext(ctx, getDaysOfWorkByServiceID, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Weekday
+	for rows.Next() {
+		var i Weekday
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.Name,
+			&i.DayID,
+			&i.StartTime,
+			&i.EndTime,
+			&i.MaxClients,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -621,7 +703,7 @@ func (q *Queries) GetRoles(ctx context.Context) ([]Role, error) {
 }
 
 const getServiceByID = `-- name: GetServiceByID :one
-SELECT id, user_id, description, category_id, google_map_address, willaya, baladia, created_at, updated_at FROM services WHERE id = $1 LIMIT 1
+SELECT id, user_id, description, subcategory_id, google_map_address, willaya, baladia, created_at, updated_at FROM services WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetServiceByID(ctx context.Context, id int64) (Service, error) {
@@ -631,7 +713,7 @@ func (q *Queries) GetServiceByID(ctx context.Context, id int64) (Service, error)
 		&i.ID,
 		&i.UserID,
 		&i.Description,
-		&i.CategoryID,
+		&i.SubcategoryID,
 		&i.GoogleMapAddress,
 		&i.Willaya,
 		&i.Baladia,
@@ -641,8 +723,45 @@ func (q *Queries) GetServiceByID(ctx context.Context, id int64) (Service, error)
 	return i, err
 }
 
+const getServiceByUserID = `-- name: GetServiceByUserID :many
+SELECT id, user_id, description, subcategory_id, google_map_address, willaya, baladia, created_at, updated_at FROM services WHERE user_id = $1 LIMIT 1
+`
+
+func (q *Queries) GetServiceByUserID(ctx context.Context, userID int32) ([]Service, error) {
+	rows, err := q.db.QueryContext(ctx, getServiceByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Service
+	for rows.Next() {
+		var i Service
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Description,
+			&i.SubcategoryID,
+			&i.GoogleMapAddress,
+			&i.Willaya,
+			&i.Baladia,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getServices = `-- name: GetServices :many
-SELECT id, user_id, description, category_id, google_map_address, willaya, baladia, created_at, updated_at FROM services ORDER BY id DESC
+SELECT id, user_id, description, subcategory_id, google_map_address, willaya, baladia, created_at, updated_at FROM services ORDER BY id DESC
 `
 
 func (q *Queries) GetServices(ctx context.Context) ([]Service, error) {
@@ -658,7 +777,7 @@ func (q *Queries) GetServices(ctx context.Context) ([]Service, error) {
 			&i.ID,
 			&i.UserID,
 			&i.Description,
-			&i.CategoryID,
+			&i.SubcategoryID,
 			&i.GoogleMapAddress,
 			&i.Willaya,
 			&i.Baladia,
@@ -897,7 +1016,7 @@ func (q *Queries) GetUsers(ctx context.Context) ([]User, error) {
 }
 
 const getWeekdaysByServiceID = `-- name: GetWeekdaysByServiceID :many
-SELECT id, service_id, name, start_time, end_time, max_clients, created_at, updated_at FROM weekdays WHERE service_id = $1
+SELECT id, service_id, name, day_id, start_time, end_time, max_clients, created_at, updated_at FROM weekdays WHERE service_id = $1
 `
 
 func (q *Queries) GetWeekdaysByServiceID(ctx context.Context, serviceID int32) ([]Weekday, error) {
@@ -913,6 +1032,81 @@ func (q *Queries) GetWeekdaysByServiceID(ctx context.Context, serviceID int32) (
 			&i.ID,
 			&i.ServiceID,
 			&i.Name,
+			&i.DayID,
+			&i.StartTime,
+			&i.EndTime,
+			&i.MaxClients,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getWorkdays = `-- name: GetWorkdays :many
+SELECT id, service_id, name, day_id, start_time, end_time, max_clients, created_at, updated_at FROM weekdays
+`
+
+func (q *Queries) GetWorkdays(ctx context.Context) ([]Weekday, error) {
+	rows, err := q.db.QueryContext(ctx, getWorkdays)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Weekday
+	for rows.Next() {
+		var i Weekday
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.Name,
+			&i.DayID,
+			&i.StartTime,
+			&i.EndTime,
+			&i.MaxClients,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getWorkdaysByServiceID = `-- name: GetWorkdaysByServiceID :many
+SELECT id, service_id, name, day_id, start_time, end_time, max_clients, created_at, updated_at FROM weekdays WHERE service_id = $1
+`
+
+func (q *Queries) GetWorkdaysByServiceID(ctx context.Context, serviceID int32) ([]Weekday, error) {
+	rows, err := q.db.QueryContext(ctx, getWorkdaysByServiceID, serviceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Weekday
+	for rows.Next() {
+		var i Weekday
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.Name,
+			&i.DayID,
 			&i.StartTime,
 			&i.EndTime,
 			&i.MaxClients,

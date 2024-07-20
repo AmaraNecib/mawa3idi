@@ -47,9 +47,12 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Post("/service", CreateServices(db))
 	// get all services
 	v1.Get("/service", GetAllServices(db))
-
+	v1.Get("/service/:id", GetServiceByID(db))
 	// category
 	v1.Post("/category", CreateCategory(db))
+
+	// days of the week
+	v1.Post("/day", CreateDay(db))
 	// get all categories
 	v1.Get("/category", GetAllCategories(db))
 	v1.Put("/category/:id", UpdateCategoryByID(db))
@@ -61,7 +64,10 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	// v1.Delete("/subcategory/:id", DeleteSubCategory(db))
 
 	// get all users
-	v1.Get("/user", Protected(), GetAllUsers(db))
+	// v1.Get("/user", Protected(), GetAllUsers(db))
+	v1.Post("/workdays", CreateWorkDays(db))
+	// get all workdays
+	v1.Get("/workdays", GetAllWorkDays(db))
 	// Pass db instance to handler functions
 	v1.Post("/role", CreateRole(db))
 	// get all roles
@@ -76,6 +82,29 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 
 	log.Fatal(app.Listen(":3000"))
 	return app, nil
+}
+
+func CreateDay(db *DB.Queries) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		day := new(DB.Day)
+		if err := ctx.BodyParser(day); err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err,
+			})
+		}
+		err := db.CreateDay(ctx.Context(), day.Name)
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err,
+			})
+		}
+		return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+			"ok":  true,
+			"day": day.Name,
+		})
+	}
 }
 
 func restricted(c *fiber.Ctx) error {
