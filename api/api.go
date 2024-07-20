@@ -68,6 +68,8 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Post("/workdays", CreateWorkDays(db))
 	// get all workdays
 	v1.Get("/workdays", GetAllWorkDays(db))
+	v1.Put("/workdays/:id", UpdateWorkDaysByID(db))
+	v1.Get("/workdays/:id", GetWorkDaysByID(db))
 	// Pass db instance to handler functions
 	v1.Post("/role", CreateRole(db))
 	// get all roles

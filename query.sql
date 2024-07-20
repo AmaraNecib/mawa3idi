@@ -18,8 +18,8 @@ INSERT INTO subcategories (name, description, category_id)
 VALUES ($1, $2, $3);
 
 -- name: CreateWorkday :exec
-INSERT INTO weekdays (service_id, name, start_time, end_time, max_clients,day_id)
-VALUES ($1, $2, $3, $4, $5, $6);
+INSERT INTO weekdays (service_id, name, start_time, end_time, max_clients,day_id, open_to_work)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: CreateService :exec
 INSERT INTO services (user_id, description, google_map_address, willaya, baladia, subcategory_id)
@@ -210,10 +210,26 @@ SELECT weekdays.* FROM weekdays JOIN services ON weekdays.service_id = services.
 
 
 -- name: GetAllDays :many
-SELECT * FROM days;
+SELECT * FROM days ORDER BY id;
 
 -- name: GetWorkdays :many
 SELECT * FROM weekdays;
 
 -- name: GetWorkdaysByServiceID :many
 SELECT * FROM weekdays WHERE service_id = $1;
+
+-- name: GetWorksdayByID :many
+SELECT * FROM weekdays WHERE id = $1;
+
+-- name: GetReservationsByWeekdayID :many
+SELECT * FROM reservations
+WHERE created_at::date = $1::date;
+
+-- name: GetWeekdaysInRange :many
+SELECT * FROM weekdays
+WHERE service_id = $1;
+
+-- name: UpdateWorkdayByID :exec
+UPDATE weekdays
+SET start_time = $1, end_time = $2, max_clients = $3, updated_at = CURRENT_TIMESTAMP, open_to_work = $4
+WHERE id = $5;

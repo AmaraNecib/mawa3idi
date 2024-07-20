@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS weekdays (
     id BIGSERIAL PRIMARY KEY,
     service_id INT NOT NULL,
     name VARCHAR(20) NOT NULL,
+    open_to_work BOOLEAN DEFAULT FALSE NOT NULL,
     day_id INT NOT NULL,
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,

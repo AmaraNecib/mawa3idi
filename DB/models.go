@@ -107,6 +107,7 @@ type Weekday struct {
 	ID         int64        `json:"id"`
 	ServiceID  int32        `json:"service_id"`
 	Name       string       `json:"name"`
+	OpenToWork bool         `json:"open_to_work"`
 	DayID      int32        `json:"day_id"`
 	StartTime  time.Time    `json:"start_time"`
 	EndTime    time.Time    `json:"end_time"`

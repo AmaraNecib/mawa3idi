@@ -20,7 +20,7 @@ func main() {
 	serviceURI := os.Getenv("DATABASE_URL")
 
 	conn, _ := url.Parse(serviceURI)
-	conn.RawQuery = "sslmode=verify-ca;sslrootcert=ca.pem"
+	// conn.RawQuery = "sslmode=verify-ca;sslrootcert=ca.pem"
 
 	db, err := sql.Open("postgres", conn.String())
 

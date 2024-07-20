@@ -1,5 +1,7 @@
 package api
 
+import "time"
+
 type ReservationType struct {
 	Name string `json:"name"`
 }
@@ -33,4 +35,34 @@ type workdays struct {
 	StartTime  string `json:"start_time"`
 	EndTime    string `json:"end_time"`
 	MaxClients int32  `json:"max_clients"`
+}
+
+type GetWorkDay struct {
+	Name                  string `json:"name"`
+	NumberOfReservistions int    `json:"number_of_reservations"`
+	MaxClients            int    `json:"max_clients"`
+	OpenToWork            bool   `json:"open_to_work"`
+	Date                  string `json:"date"`
+	StartTime             string `json:"start_time"`
+	EndTime               string `json:"end_time"`
+}
+
+type Weekday struct {
+	ID         int64     `json:"id"`
+	ServiceID  int64     `json:"service_id"`
+	Name       string    `json:"name"`
+	DayID      int64     `json:"day_id"`
+	StartTime  time.Time `json:"start_time"`
+	EndTime    time.Time `json:"end_time"`
+	MaxClients int       `json:"max_clients"`
+}
+
+type Reservation struct {
+	ID          int64     `json:"id"`
+	ServiceID   int64     `json:"service_id"`
+	UserID      int64     `json:"user_id"`
+	Time        time.Time `json:"time"`
+	WeekdayID   int64     `json:"weekday_id"`
+	Ranking     int       `json:"ranking"`
+	ReserveType int       `json:"reserve_type"`
 }
