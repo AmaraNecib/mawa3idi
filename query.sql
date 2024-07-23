@@ -216,7 +216,7 @@ SELECT * FROM days ORDER BY id;
 SELECT * FROM weekdays;
 
 -- name: GetWorkdaysByServiceID :many
-SELECT * FROM weekdays WHERE service_id = $1;
+SELECT * FROM weekdays WHERE service_id = $1 ORDER BY id;
 
 -- name: GetWorksdayByID :many
 SELECT * FROM weekdays WHERE id = $1;

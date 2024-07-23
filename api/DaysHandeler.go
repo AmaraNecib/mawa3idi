@@ -285,9 +285,6 @@ func GetWorkDaysByID(db *DB.Queries) fiber.Handler {
 			})
 		}
 
-		// Calculate the start and end dates for the next 7 workdays
-		// startDate := time.Now()
-
 		weekdays, err := db.GetWeekdaysInRange(ctx.Context(), int32(id))
 		if err != nil {
 			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -295,82 +292,114 @@ func GetWorkDaysByID(db *DB.Queries) fiber.Handler {
 				"error": err.Error(),
 			})
 		}
-		if err != nil {
-			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"ok":    false,
-				"error": fmt.Sprintf("something went wrong: %v", err),
-			})
+		daysOfWork := map[string]bool{}
+		for _, workday := range weekdays {
+			daysOfWork[workday.Name] = workday.OpenToWork
+			fmt.Println(workday.Name, workday.OpenToWork)
 		}
+		var allWorkDays []GetWorkDay
+		currentTime := time.Now().In(time.FixedZone("Algeria", 1*60*60))
+		currentDay := int(currentTime.Weekday())
 
-		weekdays, err = db.GetWeekdaysInRange(ctx.Context(), int32(id))
-		if err != nil {
-			return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"ok":    false,
-				"error": err.Error(),
-			})
+		workdaysInArabic := map[string]string{
+			"Sunday":    "الأحد",
+			"Monday":    "الإثنين",
+			"Tuesday":   "الثلاثاء",
+			"Wednesday": "الأربعاء",
+			"Thursday":  "الخميس",
+			"Friday":    "الجمعة",
+			"Saturday":  "السبت",
 		}
-
-		allWorkDays := make([]GetWorkDay, 0)
-		today := time.Now()
+		// fmt.Println(weekdays)
+		// fmt.Println(daysOfWork)
 		daysProcessed := 0
+		i := -(currentDay - 1)
 		for daysProcessed < 7 {
-			for _, workday := range weekdays {
-				if daysProcessed >= 7 {
-					break
-				}
-				if !workday.OpenToWork {
-					continue
-				}
+			if daysProcessed >= 7 {
+				break
+			}
+			// workday := weekdays[i]
+			// if !workdaysInArabic[time.Weekday((currentDay+daysProcessed)%7).String()] {
+			// 	fmt.Println("Day is not open to work")
+			// 	i++
+			// 	continue
+			// }
 
-				workdayDate := today.AddDate(0, 0, int(workday.DayID))
-				reservations, err := db.GetReservationsByWeekdayID(ctx.Context(), workdayDate)
-				if err != nil {
-					return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-						"ok":    false,
-						"error": err.Error(),
-					})
-				}
-				fmt.Println("reservations", reservations, len(reservations))
-				if len(reservations) == 0 {
-					reservations = []DB.Reservation{}
-				}
-				allWorkDays = append(allWorkDays, GetWorkDay{
-					Name: workday.Name,
-					// NumberOfReservations: len(reservations),
-					NumberOfReservistions: int(len(reservations)),
-					Date:                  workdayDate.Format("2006-01-02"),
-					MaxClients:            int(workday.MaxClients),
-					StartTime:             workday.StartTime.Format("15:04"),
-					EndTime:               workday.EndTime.Format("15:04"),
-					OpenToWork:            workday.OpenToWork,
+			dayIndex := (currentDay + i) % 7
+			dayName := time.Weekday(dayIndex).String()
+
+			workdayDate := currentTime.AddDate(0, 0, i)
+			if !daysOfWork[workdaysInArabic[dayName]] {
+				fmt.Println("Day is not open to work", dayName, daysOfWork[dayName])
+				i++
+				continue
+			}
+			fmt.Println("Day is open to work", dayName)
+			// Convert StartTime and EndTime to time strings for comparison
+			workdayStartTime := weekdays[time.Now().Weekday()].StartTime.Format("15:04")
+			workdayEndTime := weekdays[time.Now().Weekday()].EndTime.Format("15:04")
+
+			reservations, err := db.GetReservationsByWeekdayID(ctx.Context(), workdayDate)
+			if err != nil {
+				return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"ok":    false,
+					"error": err.Error(),
 				})
-				daysProcessed++
 			}
 
+			if len(reservations) == 0 {
+				reservations = []DB.Reservation{}
+			}
+			// fmt.Println("Day is not open to work")
+			allWorkDays = append(allWorkDays, GetWorkDay{
+				Name:                  workdaysInArabic[dayName],
+				NumberOfReservistions: len(reservations),
+				Date:                  workdayDate.Format("2006-01-02"),
+				MaxClients:            int(weekdays[time.Now().Weekday()].MaxClients),
+				StartTime:             workdayStartTime,
+				EndTime:               workdayEndTime,
+				OpenToWork:            true,
+			})
+			daysProcessed++
+			i++
 		}
+
 		return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 			"ok":       true,
 			"workdays": allWorkDays,
-			"day":      daysProcessed,
 		})
+
 	}
 }
 
 func UpdateWorkDaysByID(db *DB.Queries) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		idStr := ctx.Params("id")
-		id, err := strconv.ParseInt(idStr, 10, 32)
-		if err != nil {
+		var day workdays
+		if err := ctx.BodyParser(&day); err != nil {
 			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": err,
 			})
 		}
-		var day workdays
-		if err = ctx.BodyParser(&day); err != nil {
+		userID := int32(auth.GetUserID(strings.Split(string(ctx.Get("Authorization")), " ")[1]))
+		if userID == 0 {
 			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
-				"error": err,
+				"error": "Unauthorized",
+			})
+		}
+		serviceId, err := db.GetServiceByUserID(ctx.Context(), userID)
+		if err != nil || len(serviceId) == 0 {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "You don't have a service",
+			})
+		}
+		serviceID := int32(serviceId[0].ID)
+		if len(serviceId) == 0 || serviceID == 0 {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "You don't have a service",
 			})
 		}
 		startTime, err := time.Parse("15:04", day.StartTime)
@@ -387,21 +416,120 @@ func UpdateWorkDaysByID(db *DB.Queries) fiber.Handler {
 				"error": err,
 			})
 		}
-		err = db.UpdateWorkdayByID(ctx.Context(), DB.UpdateWorkdayByIDParams{
-			ID:         int64(id),
-			OpenToWork: day.Saturday,
-			StartTime:  startTime,
-			EndTime:    endTime,
-			MaxClients: int32(day.MaxClients),
-		})
+		// err = db.UpdateWorkdayByID(ctx.Context(), DB.UpdateWorkdayByIDParams{
+		// 	// ID:         int64(id),
+		// 	OpenToWork: day.Saturday,
+		// 	StartTime:  startTime,
+		// 	EndTime:    endTime,
+		// 	MaxClients: int32(day.MaxClients),
+		// })
+		// if err != nil {
+		// 	return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+		// 		"ok":    false,
+		// 		"error": err,
+		// 	})
+		// }
+		days, err := db.GetWorkdaysByServiceID(ctx.Context(), serviceID)
 		if err != nil {
 			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": err,
 			})
 		}
+		err = db.UpdateWorkdayByID(ctx.Context(), DB.UpdateWorkdayByIDParams{
+			StartTime:  startTime,
+			OpenToWork: day.Sunday,
+			EndTime:    endTime,
+			MaxClients: int32(day.MaxClients),
+			ID:         int64(days[0].ID),
+		})
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": fmt.Sprintf("something went wrong: %v", err),
+			})
+		}
+		err = db.UpdateWorkdayByID(ctx.Context(), DB.UpdateWorkdayByIDParams{
+			StartTime:  startTime,
+			OpenToWork: day.Monday,
+			EndTime:    endTime,
+			MaxClients: int32(day.MaxClients),
+			ID:         int64(days[1].ID),
+		})
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": fmt.Sprintf("something went wrong: %v", err),
+			})
+		}
+		err = db.UpdateWorkdayByID(ctx.Context(), DB.UpdateWorkdayByIDParams{
+			StartTime:  startTime,
+			OpenToWork: day.Tuesday,
+			EndTime:    endTime,
+			MaxClients: int32(day.MaxClients),
+			ID:         int64(days[2].ID),
+		})
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": fmt.Sprintf("something went wrong: %v", err),
+			})
+		}
+		err = db.UpdateWorkdayByID(ctx.Context(), DB.UpdateWorkdayByIDParams{
+			StartTime:  startTime,
+			OpenToWork: day.Wednesday,
+			EndTime:    endTime,
+			MaxClients: int32(day.MaxClients),
+			ID:         int64(days[3].ID),
+		})
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": fmt.Sprintf("something went wrong: %v", err),
+			})
+		}
+		err = db.UpdateWorkdayByID(ctx.Context(), DB.UpdateWorkdayByIDParams{
+			StartTime:  startTime,
+			OpenToWork: day.Thursday,
+			EndTime:    endTime,
+			MaxClients: int32(day.MaxClients),
+			ID:         int64(days[4].ID),
+		})
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": fmt.Sprintf("something went wrong: %v", err),
+			})
+		}
+		err = db.UpdateWorkdayByID(ctx.Context(), DB.UpdateWorkdayByIDParams{
+			StartTime:  startTime,
+			OpenToWork: day.Friday,
+			EndTime:    endTime,
+			MaxClients: int32(day.MaxClients),
+			ID:         int64(days[5].ID),
+		})
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": fmt.Sprintf("something went wrong: %v", err),
+			})
+		}
+		err = db.UpdateWorkdayByID(ctx.Context(), DB.UpdateWorkdayByIDParams{
+			StartTime:  startTime,
+			OpenToWork: day.Saturday,
+			EndTime:    endTime,
+			MaxClients: int32(day.MaxClients),
+			ID:         int64(days[6].ID),
+		})
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": fmt.Sprintf("something went wrong: %v", err),
+			})
+		}
 		return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
-			"ok": true,
+			"ok":      true,
+			"message": "Workdays updated successfully",
 		})
 	}
 }
