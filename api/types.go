@@ -57,12 +57,9 @@ type Weekday struct {
 	MaxClients int       `json:"max_clients"`
 }
 
-type Reservation struct {
-	ID          int64     `json:"id"`
-	ServiceID   int64     `json:"service_id"`
-	UserID      int64     `json:"user_id"`
-	Time        time.Time `json:"time"`
-	WeekdayID   int64     `json:"weekday_id"`
-	Ranking     int       `json:"ranking"`
-	ReserveType int       `json:"reserve_type"`
+type MyReservation struct {
+	ServiceID int64 `json:"service_id"`
+	// time 2024-07-26
+	Time string `json:"time"`
+	// Time       `json:"time"`
 }

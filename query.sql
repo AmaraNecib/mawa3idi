@@ -25,9 +25,22 @@ VALUES ($1, $2, $3, $4, $5, $6, $7);
 INSERT INTO services (user_id, description, google_map_address, willaya, baladia, subcategory_id)
 VALUES ($1, $2, $3, $4, $5, $6);
 
--- name: CreateReservation :exec
-INSERT INTO reservations (service_id, user_id, time, weekday_id, ranking)
-VALUES ($1, $2, $3, $4, $5);
+-- name: GetReservationsCount :one
+SELECT  COUNT(*) FROM reservations WHERE service_id = $1 AND time = $2 AND weekday_id = $3;
+-- name: GetReservationsCountForUpdate :one
+SELECT COUNT(*)
+FROM reservations
+WHERE weekday_id = $1
+  AND service_id = $2
+  AND time = $3
+FOR UPDATE;
+
+-- name: GetReservationsCountByUserIdAndServiceId :one
+SELECT  COUNT(*) FROM reservations WHERE user_id = $1 AND service_id = $2 AND time = $3 AND weekday_id = $4;
+-- name: CreateReservation :one
+INSERT INTO reservations (service_id, user_id, time, weekday_id, ranking, reserve_type)
+VALUES ($1, $2, $3, $4, $5, 1)
+RETURNING id, service_id, user_id, time, weekday_id, ranking, reserve_type, created_at, updated_at;
 
 -- name: CreateRating :exec
 INSERT INTO ratings (service_id, user_id, rating, comment)

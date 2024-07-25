@@ -79,28 +79,41 @@ func (q *Queries) CreateRating(ctx context.Context, arg CreateRatingParams) erro
 	return err
 }
 
-const createReservation = `-- name: CreateReservation :exec
-INSERT INTO reservations (service_id, user_id, time, weekday_id, ranking)
-VALUES ($1, $2, $3, $4, $5)
+const createReservation = `-- name: CreateReservation :one
+INSERT INTO reservations (service_id, user_id, time, weekday_id, ranking, reserve_type)
+VALUES ($1, $2, $3, $4, $5, 1)
+RETURNING id, service_id, user_id, time, weekday_id, ranking, reserve_type, created_at, updated_at
 `
 
 type CreateReservationParams struct {
-	ServiceID int32         `json:"service_id"`
-	UserID    int32         `json:"user_id"`
-	Time      time.Time     `json:"time"`
-	WeekdayID int32         `json:"weekday_id"`
-	Ranking   sql.NullInt32 `json:"ranking"`
+	ServiceID int32     `json:"service_id"`
+	UserID    int32     `json:"user_id"`
+	Time      time.Time `json:"time"`
+	WeekdayID int32     `json:"weekday_id"`
+	Ranking   int32     `json:"ranking"`
 }
 
-func (q *Queries) CreateReservation(ctx context.Context, arg CreateReservationParams) error {
-	_, err := q.db.ExecContext(ctx, createReservation,
+func (q *Queries) CreateReservation(ctx context.Context, arg CreateReservationParams) (Reservation, error) {
+	row := q.db.QueryRowContext(ctx, createReservation,
 		arg.ServiceID,
 		arg.UserID,
 		arg.Time,
 		arg.WeekdayID,
 		arg.Ranking,
 	)
-	return err
+	var i Reservation
+	err := row.Scan(
+		&i.ID,
+		&i.ServiceID,
+		&i.UserID,
+		&i.Time,
+		&i.WeekdayID,
+		&i.Ranking,
+		&i.ReserveType,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const createReserveType = `-- name: CreateReserveType :one
@@ -663,6 +676,46 @@ func (q *Queries) GetReservationsByWeekdayID(ctx context.Context, dollar_1 time.
 	return items, nil
 }
 
+const getReservationsCount = `-- name: GetReservationsCount :one
+SELECT  COUNT(*) FROM reservations WHERE service_id = $1 AND time = $2 AND weekday_id = $3
+`
+
+type GetReservationsCountParams struct {
+	ServiceID int32     `json:"service_id"`
+	Time      time.Time `json:"time"`
+	WeekdayID int32     `json:"weekday_id"`
+}
+
+func (q *Queries) GetReservationsCount(ctx context.Context, arg GetReservationsCountParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getReservationsCount, arg.ServiceID, arg.Time, arg.WeekdayID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getReservationsCountByUserIdAndServiceId = `-- name: GetReservationsCountByUserIdAndServiceId :one
+SELECT  COUNT(*) FROM reservations WHERE user_id = $1 AND service_id = $2 AND time = $3 AND weekday_id = $4
+`
+
+type GetReservationsCountByUserIdAndServiceIdParams struct {
+	UserID    int32     `json:"user_id"`
+	ServiceID int32     `json:"service_id"`
+	Time      time.Time `json:"time"`
+	WeekdayID int32     `json:"weekday_id"`
+}
+
+func (q *Queries) GetReservationsCountByUserIdAndServiceId(ctx context.Context, arg GetReservationsCountByUserIdAndServiceIdParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getReservationsCountByUserIdAndServiceId,
+		arg.UserID,
+		arg.ServiceID,
+		arg.Time,
+		arg.WeekdayID,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getReserveTypes = `-- name: GetReserveTypes :many
 SELECT id, name, created_at, updated_at FROM reserve_types
 `
@@ -1172,7 +1225,7 @@ func (q *Queries) GetWorkdays(ctx context.Context) ([]Weekday, error) {
 }
 
 const getWorkdaysByServiceID = `-- name: GetWorkdaysByServiceID :many
-SELECT id, service_id, name, open_to_work, day_id, start_time, end_time, max_clients, created_at, updated_at FROM weekdays WHERE service_id = $1
+SELECT id, service_id, name, open_to_work, day_id, start_time, end_time, max_clients, created_at, updated_at FROM weekdays WHERE service_id = $1 ORDER BY id
 `
 
 func (q *Queries) GetWorkdaysByServiceID(ctx context.Context, serviceID int32) ([]Weekday, error) {
@@ -1321,12 +1374,12 @@ WHERE id = $6
 `
 
 type UpdateReservationByIDParams struct {
-	ServiceID int32         `json:"service_id"`
-	UserID    int32         `json:"user_id"`
-	Time      time.Time     `json:"time"`
-	WeekdayID int32         `json:"weekday_id"`
-	Ranking   sql.NullInt32 `json:"ranking"`
-	ID        int64         `json:"id"`
+	ServiceID int32     `json:"service_id"`
+	UserID    int32     `json:"user_id"`
+	Time      time.Time `json:"time"`
+	WeekdayID int32     `json:"weekday_id"`
+	Ranking   int32     `json:"ranking"`
+	ID        int64     `json:"id"`
 }
 
 func (q *Queries) UpdateReservationByID(ctx context.Context, arg UpdateReservationByIDParams) error {

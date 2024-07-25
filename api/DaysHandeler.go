@@ -276,6 +276,7 @@ func GetAllWorkDays(db *DB.Queries) fiber.Handler {
 
 func GetWorkDaysByID(db *DB.Queries) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
+		startTime := time.Now().Second()
 		idStr := ctx.Params("id")
 		id, err := strconv.ParseInt(idStr, 10, 32)
 		if err != nil {
@@ -292,10 +293,20 @@ func GetWorkDaysByID(db *DB.Queries) fiber.Handler {
 				"error": err.Error(),
 			})
 		}
+		numOfWorkDay := 0
 		daysOfWork := map[string]bool{}
 		for _, workday := range weekdays {
 			daysOfWork[workday.Name] = workday.OpenToWork
 			fmt.Println(workday.Name, workday.OpenToWork)
+			if workday.OpenToWork {
+				numOfWorkDay++
+			}
+		}
+		if numOfWorkDay == 0 {
+			return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
+				"ok":       true,
+				"workdays": []GetWorkDay{},
+			})
 		}
 		var allWorkDays []GetWorkDay
 		currentTime := time.Now().In(time.FixedZone("Algeria", 1*60*60))
@@ -303,19 +314,19 @@ func GetWorkDaysByID(db *DB.Queries) fiber.Handler {
 
 		workdaysInArabic := map[string]string{
 			"Sunday":    "الأحد",
-			"Monday":    "الإثنين",
+			"Monday":    "الأثنين",
 			"Tuesday":   "الثلاثاء",
 			"Wednesday": "الأربعاء",
 			"Thursday":  "الخميس",
-			"Friday":    "الجمعة",
+			"Friday":    "الجمعه",
 			"Saturday":  "السبت",
 		}
 		// fmt.Println(weekdays)
 		// fmt.Println(daysOfWork)
 		daysProcessed := 0
-		i := -(currentDay - 1)
-		for daysProcessed < 7 {
-			if daysProcessed >= 7 {
+		i := -(currentDay)
+		for daysProcessed < 7 || i < 60 {
+			if daysProcessed >= 7 || i > 60 {
 				break
 			}
 			// workday := weekdays[i]
@@ -327,17 +338,26 @@ func GetWorkDaysByID(db *DB.Queries) fiber.Handler {
 
 			dayIndex := (currentDay + i) % 7
 			dayName := time.Weekday(dayIndex).String()
-
+			workdayStartTime := weekdays[time.Now().Weekday()].StartTime.Format("15:04")
+			workdayEndTime := weekdays[time.Now().Weekday()].EndTime.Format("15:04")
 			workdayDate := currentTime.AddDate(0, 0, i)
-			if !daysOfWork[workdaysInArabic[dayName]] {
-				fmt.Println("Day is not open to work", dayName, daysOfWork[dayName])
+			// fmt.Println(workdayDate)
+			// if daysOfWork[workdaysInArabic[dayName]] {
+			// 	fmt.Println("Day is open to work", dayName, workdaysInArabic[dayName], daysOfWork[workdaysInArabic[dayName]])
+			// }
+			if time.Now().Format("15:30") >= workdayEndTime && currentTime.Format("2006-01-02") >= workdayDate.Format("2006-01-02") {
+				// Skip this day if the current time is beyond end time
+				fmt.Println(time.Now().Format("15:30"), workdayEndTime, currentTime.Format("2006-01-02"), workdayDate.Format("2006-01-02"))
 				i++
 				continue
 			}
-			fmt.Println("Day is open to work", dayName)
+			if !daysOfWork[workdaysInArabic[dayName]] {
+				// fmt.Println("Day is not open to work", dayName, daysOfWork[dayName])
+				i++
+				continue
+			}
+			// fmt.Println("Day is open to work", dayName)
 			// Convert StartTime and EndTime to time strings for comparison
-			workdayStartTime := weekdays[time.Now().Weekday()].StartTime.Format("15:04")
-			workdayEndTime := weekdays[time.Now().Weekday()].EndTime.Format("15:04")
 
 			reservations, err := db.GetReservationsByWeekdayID(ctx.Context(), workdayDate)
 			if err != nil {
@@ -363,7 +383,8 @@ func GetWorkDaysByID(db *DB.Queries) fiber.Handler {
 			daysProcessed++
 			i++
 		}
-
+		fmt.Println(i)
+		fmt.Println("end time: ", time.Now().Second()-startTime)
 		return ctx.Status(fiber.StatusOK).JSON(fiber.Map{
 			"ok":       true,
 			"workdays": allWorkDays,

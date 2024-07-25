@@ -45,15 +45,15 @@ type Rating struct {
 }
 
 type Reservation struct {
-	ID          int64         `json:"id"`
-	ServiceID   int32         `json:"service_id"`
-	UserID      int32         `json:"user_id"`
-	Time        time.Time     `json:"time"`
-	WeekdayID   int32         `json:"weekday_id"`
-	Ranking     sql.NullInt32 `json:"ranking"`
-	ReserveType sql.NullInt32 `json:"reserve_type"`
-	CreatedAt   sql.NullTime  `json:"created_at"`
-	UpdatedAt   sql.NullTime  `json:"updated_at"`
+	ID          int64        `json:"id"`
+	ServiceID   int32        `json:"service_id"`
+	UserID      int32        `json:"user_id"`
+	Time        time.Time    `json:"time"`
+	WeekdayID   int32        `json:"weekday_id"`
+	Ranking     int32        `json:"ranking"`
+	ReserveType int32        `json:"reserve_type"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
 }
 
 type ReserveType struct {
