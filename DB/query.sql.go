@@ -1352,18 +1352,17 @@ const searchServicesByCategory = `-- name: SearchServicesByCategory :many
 SELECT s.id, s.user_id, s.description, s.subcategory_id, s.google_map_address, s.willaya, s.baladia, s.average_rating, s.created_at, s.updated_at
 FROM services s
 JOIN subcategories sc ON s.subcategory_id = sc.id
-JOIN categories c ON sc.category_id = c.id
-WHERE c.name ILIKE $1 LIMIT $2 OFFSET $3
+JOIN categories c ON sc.category_id = $1 LIMIT $2 OFFSET $3
 `
 
 type SearchServicesByCategoryParams struct {
-	Name   string `json:"name"`
-	Limit  int32  `json:"limit"`
-	Offset int32  `json:"offset"`
+	CategoryID int32 `json:"category_id"`
+	Limit      int32 `json:"limit"`
+	Offset     int32 `json:"offset"`
 }
 
 func (q *Queries) SearchServicesByCategory(ctx context.Context, arg SearchServicesByCategoryParams) ([]Service, error) {
-	rows, err := q.db.QueryContext(ctx, searchServicesByCategory, arg.Name, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, searchServicesByCategory, arg.CategoryID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -1397,20 +1396,17 @@ func (q *Queries) SearchServicesByCategory(ctx context.Context, arg SearchServic
 }
 
 const searchServicesBySubCategory = `-- name: SearchServicesBySubCategory :many
-SELECT s.id, s.user_id, s.description, s.subcategory_id, s.google_map_address, s.willaya, s.baladia, s.average_rating, s.created_at, s.updated_at
-FROM services s
-JOIN subcategories sc ON s.subcategory_id = sc.id
-WHERE sc.name ILIKE '%' + $1 + '%' LIMIT $2 OFFSET $3
+SELECT s.id, s.user_id, s.description, s.subcategory_id, s.google_map_address, s.willaya, s.baladia, s.average_rating, s.created_at, s.updated_at FROM services AS s JOIN subcategories AS sc ON s.subcategory_id = $1 LIMIT $2 OFFSET $3
 `
 
 type SearchServicesBySubCategoryParams struct {
-	Column1 interface{} `json:"column_1"`
-	Limit   int32       `json:"limit"`
-	Offset  int32       `json:"offset"`
+	SubcategoryID int32 `json:"subcategory_id"`
+	Limit         int32 `json:"limit"`
+	Offset        int32 `json:"offset"`
 }
 
 func (q *Queries) SearchServicesBySubCategory(ctx context.Context, arg SearchServicesBySubCategoryParams) ([]Service, error) {
-	rows, err := q.db.QueryContext(ctx, searchServicesBySubCategory, arg.Column1, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, searchServicesBySubCategory, arg.SubcategoryID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

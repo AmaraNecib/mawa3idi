@@ -262,11 +262,9 @@ UPDATE reservations_status SET name = $1 WHERE id = $2;
 SELECT s.*
 FROM services s
 JOIN subcategories sc ON s.subcategory_id = sc.id
-JOIN categories c ON sc.category_id = c.id
-WHERE c.name ILIKE $1 LIMIT $2 OFFSET $3;
+JOIN categories c ON sc.category_id = $1 LIMIT $2 OFFSET $3;
 
 -- name: SearchServicesBySubCategory :many
-SELECT s.*
-FROM services s
-JOIN subcategories sc ON s.subcategory_id = sc.id
-WHERE sc.name ILIKE '%' + $1 + '%' LIMIT $2 OFFSET $3;
+SELECT s.* FROM services AS s JOIN subcategories AS sc ON s.subcategory_id = $1 LIMIT $2 OFFSET $3;
+-- WHERE sc.name ILIKE $1 OR sc.description ILIKE $1
+-- OFFSET $3 LIMIT $2;
