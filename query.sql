@@ -18,7 +18,7 @@ INSERT INTO subcategories (name, description, category_id)
 VALUES ($1, $2, $3);
 
 -- name: CreateWorkday :exec
-INSERT INTO weekdays (service_id, name, start_time, end_time, max_clients,day_id, open_to_work)
+INSERT INTO workdays (service_id, name, start_time, end_time, max_clients,day_id, open_to_work)
 VALUES ($1, $2, $3, $4, $5, $6, $7);
 
 -- name: CreateService :exec
@@ -99,14 +99,13 @@ SELECT subcategories.*, categories.name AS category_name
 FROM subcategories
 JOIN categories ON subcategories.category_id = categories.id;
 
--- name: GetWeekdaysByServiceID :many
-SELECT * FROM weekdays WHERE service_id = $1;
+
 
 -- name: GetServiceByID :one
 SELECT * FROM services WHERE id = $1 LIMIT 1;
 
 -- name: GetServices :many
-SELECT * FROM services ORDER BY id DESC;
+SELECT * FROM services ORDER BY id DESC OFFSET $2 LIMIT $1;
 
 -- name: GetReservationsByUserID :many
 SELECT * FROM reservations WHERE user_id = $1;
@@ -142,10 +141,7 @@ UPDATE subcategories
 SET name = $1, description = $2, category_id = $3, updated_at = CURRENT_TIMESTAMP
 WHERE id = $4;
 
--- name: UpdateWeekdayByID :exec
-UPDATE weekdays
-SET service_id = $1, name = $2, start_time = $3, end_time = $4, max_clients = $5, updated_at = CURRENT_TIMESTAMP
-WHERE id = $6;
+
 
 -- name: UpdateServiceByID :exec
 UPDATE services
@@ -187,8 +183,8 @@ WHERE id = $1;
 DELETE FROM subcategories
 WHERE id = $1;
 
--- name: DeleteWeekdayByID :exec
-DELETE FROM weekdays
+-- name: DeleteWorkdayByID :exec
+DELETE FROM workdays
 WHERE id = $1;
 
 -- name: DeleteServiceByID :exec
@@ -219,30 +215,58 @@ DELETE FROM reserve_types WHERE id = $1;
 
 
 -- name: GetDaysOfWorkByServiceID :many
-SELECT weekdays.* FROM weekdays JOIN services ON weekdays.service_id = services.id WHERE services.id = $1;
+SELECT workdays.* FROM workdays JOIN services ON workdays.service_id = services.id WHERE services.id = $1;
 
 
 -- name: GetAllDays :many
 SELECT * FROM days ORDER BY id;
 
 -- name: GetWorkdays :many
-SELECT * FROM weekdays;
+SELECT * FROM workdays;
 
 -- name: GetWorkdaysByServiceID :many
-SELECT * FROM weekdays WHERE service_id = $1 ORDER BY id;
+SELECT * FROM workdays WHERE service_id = $1 ORDER BY id;
 
 -- name: GetWorksdayByID :many
-SELECT * FROM weekdays WHERE id = $1;
+SELECT * FROM workdays WHERE id = $1;
 
 -- name: GetReservationsByWeekdayID :many
 SELECT * FROM reservations
 WHERE created_at::date = $1::date;
 
--- name: GetWeekdaysInRange :many
-SELECT * FROM weekdays
+-- name: GetWorkdaysInRange :many
+SELECT * FROM workdays
 WHERE service_id = $1;
 
 -- name: UpdateWorkdayByID :exec
-UPDATE weekdays
+UPDATE workdays
 SET start_time = $1, end_time = $2, max_clients = $3, updated_at = CURRENT_TIMESTAMP, open_to_work = $4
 WHERE id = $5;
+
+
+-- name: UpdateAvergaeRating :one
+UPDATE services
+    SET average_rating = (SELECT AVG(rating) FROM ratings WHERE service_id = $1)
+    WHERE id = $1 RETURNING average_rating;
+
+-- name: GetAllReserveStatus :many
+SELECT * FROM reservations_status;
+
+-- name: CreateReserveStatus :exec
+INSERT INTO reservations_status (name) VALUES ($1);
+
+-- name: UpdateReserveStatusName :exec
+UPDATE reservations_status SET name = $1 WHERE id = $2;
+
+-- name: SearchServicesByCategory :many
+SELECT s.*
+FROM services s
+JOIN subcategories sc ON s.subcategory_id = sc.id
+JOIN categories c ON sc.category_id = c.id
+WHERE c.name ILIKE $1 LIMIT $2 OFFSET $3;
+
+-- name: SearchServicesBySubCategory :many
+SELECT s.*
+FROM services s
+JOIN subcategories sc ON s.subcategory_id = sc.id
+WHERE sc.name ILIKE '%' + $1 + '%' LIMIT $2 OFFSET $3;

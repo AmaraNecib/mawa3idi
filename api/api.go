@@ -21,7 +21,7 @@ func Protected() func(*fiber.Ctx) error {
 func Init(db *DB.Queries) (*fiber.App, error) {
 	app := fiber.New(
 		fiber.Config{
-			Prefork: true,
+			// Prefork: true,
 		},
 	)
 
@@ -68,6 +68,7 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Post("/workdays", CreateWorkDays(db))
 	// get all workdays
 	v1.Get("/workdays", GetAllWorkDays(db))
+	v1.Put("/workdays", UpdateAllWorkDays(db))
 	v1.Put("/workdays/:id", UpdateWorkDaysByID(db))
 	v1.Get("/workdays/:id", GetWorkDaysByID(db))
 
@@ -82,11 +83,17 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Put("/role/:id", UpdateRoleByID(db))
 	v1.Delete("/role/:id", DeleteRole(db))
 
-	// reservation
+	// reservation type
 	v1.Get("/reservation-type", GetAllReservitionTypes(db))
 	v1.Post("/reservation-type", CreateReservitionType(db))
 	v1.Delete("/reservation-type/:id", DeleteReservitionType(db))
+	// reservation status
+	v1.Get("/reservation-status", GetAllReservitionStatus(db))
+	v1.Post("/reservation-status", CreateReservitionStatus(db))
+	v1.Put("/reservation-status/:id", UpdateReservitionStatusByID(db))
 
+	//search services by category order by rating, and near location
+	v1.Get("/search", SearchServices(db))
 	log.Fatal(app.Listen(":3000"))
 	return app, nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"io/ioutil"
 	"log"
 	"mawa3id/DB"
 	"mawa3id/api"
@@ -38,6 +39,19 @@ func main() {
 	// 	log.Fatal(err)
 	// }
 	// fmt.Println("Successfully created schema")
+
+	sqlFile, err := ioutil.ReadFile("schema.sql")
+	if err != nil {
+		log.Fatalf("Error reading file: %v", err)
+	}
+
+	// Execute the SQL commands
+	_, err = db.Exec(string(sqlFile))
+	if err != nil {
+		log.Fatalf("Error executing SQL: %v", err)
+	}
+
+	log.Println("Schema updated successfully!")
 	queries := DB.New(db)
 	_, err = api.Init(queries)
 	if err != nil {

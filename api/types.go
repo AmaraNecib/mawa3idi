@@ -63,3 +63,8 @@ type MyReservation struct {
 	Time string `json:"time"`
 	// Time       `json:"time"`
 }
+
+type ReservationStatus struct {
+	Id   int32  `json:"id"`
+	Name string `json:"name"`
+}

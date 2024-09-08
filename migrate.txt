@@ -8,3 +8,15 @@
 		log.Fatal(err)
 	}
 	fmt.Println("Successfully created schema")
+
+
+
+
+
+	-- -- name: GetWorkdaysByServiceID :many
+-- SELECT * FROM Workdays WHERE service_id = $1;
+
+-- name: UpdateWorkdayByID :exec
+UPDATE workdays
+SET service_id = $1, name = $2, start_time = $3, end_time = $4, max_clients = $5, updated_at = CURRENT_TIMESTAMP
+WHERE id = $6;

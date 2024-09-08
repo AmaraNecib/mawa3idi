@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS services (
     google_map_address VARCHAR(255) NOT NULL,
     willaya VARCHAR(50) NOT NULL,
     baladia VARCHAR(50) NOT NULL,
+    average_rating FLOAT DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id),
     created_at TIMESTAMP(0) DEFAULT NOW(),
     updated_at TIMESTAMP(0) DEFAULT NOW(),
@@ -62,7 +63,7 @@ CREATE TABLE IF NOT EXISTS days (
     updated_at TIMESTAMP(0) DEFAULT NOW()
 );
 -- إنشاء جدول أيام الأسبوع
-CREATE TABLE IF NOT EXISTS weekdays (
+CREATE TABLE IF NOT EXISTS workdays (
     id BIGSERIAL PRIMARY KEY,
     service_id INT NOT NULL,
     name VARCHAR(20) NOT NULL,
@@ -84,6 +85,14 @@ CREATE TABLE IF NOT EXISTS reserve_types (
     updated_at TIMESTAMP(0) DEFAULT NOW()
 );
 
+-- reservations status
+CREATE TABLE IF NOT EXISTS reservations_status (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW()
+);
+
 -- إنشاء جدول الحجوزات
 CREATE TABLE IF NOT EXISTS reservations (
     id BIGSERIAL PRIMARY KEY,
@@ -93,12 +102,14 @@ CREATE TABLE IF NOT EXISTS reservations (
     weekday_id INT NOT NULL, 
     ranking INT DEFAULT 0 NOT NULL,
     reserve_type INT DEFAULT 1 NOT NULL,
+    reserv_status INT DEFAULT 1 NOT NULL,
     created_at TIMESTAMP(0) DEFAULT NOW(),
     updated_at TIMESTAMP(0) DEFAULT NOW(),
     FOREIGN KEY (service_id) REFERENCES services(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (weekday_id) REFERENCES weekdays(id),
-    FOREIGN KEY (reserve_type) REFERENCES reserve_types(id)
+    FOREIGN KEY (weekday_id) REFERENCES workdays(id),
+    FOREIGN KEY (reserve_type) REFERENCES reserve_types(id),
+    FOREIGN KEY (reserv_status) REFERENCES reservations_status(id)
 );
 
 

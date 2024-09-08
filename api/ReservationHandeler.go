@@ -29,7 +29,7 @@ func CreateReservation(db *DB.Queries) func(*fiber.Ctx) error {
 		}
 		// get the number of the day
 		dayId := timeObj.Weekday()
-		res, err := db.GetWeekdaysByServiceID(c.Context(), int32(reservation.ServiceID))
+		res, err := db.GetWorkdaysByServiceID(c.Context(), int32(reservation.ServiceID))
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,

@@ -75,13 +75,32 @@ type Service struct {
 
 func GetAllServices(db *DB.Queries) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
-		services, err := db.GetServices(ctx.Context())
+		sizeStr := ctx.Query("size")
+
+		size, err := strconv.ParseInt(sizeStr, 10, 32)
+		if err != nil {
+			size = 10
+		}
+		fmt.Println(size)
+		page, err := strconv.ParseInt(ctx.Query("page"), 10, 32)
+
+		if err != nil {
+			page = 1
+		}
+		fmt.Println(page)
+		// OFFSET $2 LIMIT $1
+
+		services, err := db.GetServices(ctx.Context(), DB.GetServicesParams{
+			Limit:  int32(size),
+			Offset: int32((page - 1) * size),
+		})
 		if err != nil {
 			ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": err,
 			})
 		}
+		fmt.Println(services)
 		if len(services) == 0 {
 			services = []DB.Service{}
 		}
