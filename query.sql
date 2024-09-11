@@ -268,3 +268,23 @@ JOIN categories c ON sc.category_id = $1 LIMIT $2 OFFSET $3;
 SELECT s.* FROM services AS s JOIN subcategories AS sc ON s.subcategory_id = $1 LIMIT $2 OFFSET $3;
 -- WHERE sc.name ILIKE $1 OR sc.description ILIKE $1
 -- OFFSET $3 LIMIT $2;
+-- name: OrderServicesByRating :many
+SELECT s.* FROM services AS s JOIN subcategories AS sc ON s.subcategory_id = $1 ORDER BY s.average_rating DESC LIMIT $2 OFFSET $3;
+
+-- name: OrderServicesByDistance :many
+SELECT 
+    s.*,
+    ( 
+      6371 * acos( 
+          cos(radians($4)) * 
+          cos(radians(s.latitude)) * 
+          cos(radians(s.longitude) - radians($5)) + 
+          sin(radians($4)) * 
+          sin(radians(s.latitude)) 
+      ) 
+    ) AS distance
+FROM services AS s
+JOIN subcategories AS sc ON s.subcategory_id = sc.id
+WHERE s.subcategory_id = $1
+ORDER BY distance ASC
+LIMIT $2 OFFSET $3;

@@ -1348,6 +1348,134 @@ func (q *Queries) GetWorksdayByID(ctx context.Context, id int64) ([]Workday, err
 	return items, nil
 }
 
+const orderServicesByDistance = `-- name: OrderServicesByDistance :many
+SELECT 
+    s.id, s.user_id, s.description, s.subcategory_id, s.google_map_address, s.willaya, s.baladia, s.average_rating, s.created_at, s.updated_at,
+    ( 
+      6371 * acos( 
+          cos(radians($4)) * 
+          cos(radians(s.latitude)) * 
+          cos(radians(s.longitude) - radians($5)) + 
+          sin(radians($4)) * 
+          sin(radians(s.latitude)) 
+      ) 
+    ) AS distance
+FROM services AS s
+JOIN subcategories AS sc ON s.subcategory_id = sc.id
+WHERE s.subcategory_id = $1
+ORDER BY distance ASC
+LIMIT $2 OFFSET $3
+`
+
+type OrderServicesByDistanceParams struct {
+	SubcategoryID int32   `json:"subcategory_id"`
+	Limit         int32   `json:"limit"`
+	Offset        int32   `json:"offset"`
+	Radians       float64 `json:"radians"`
+	Radians_2     float64 `json:"radians_2"`
+}
+
+type OrderServicesByDistanceRow struct {
+	ID               int64           `json:"id"`
+	UserID           int32           `json:"user_id"`
+	Description      string          `json:"description"`
+	SubcategoryID    int32           `json:"subcategory_id"`
+	GoogleMapAddress string          `json:"google_map_address"`
+	Willaya          string          `json:"willaya"`
+	Baladia          string          `json:"baladia"`
+	AverageRating    sql.NullFloat64 `json:"average_rating"`
+	CreatedAt        sql.NullTime    `json:"created_at"`
+	UpdatedAt        sql.NullTime    `json:"updated_at"`
+	Distance         int32           `json:"distance"`
+}
+
+func (q *Queries) OrderServicesByDistance(ctx context.Context, arg OrderServicesByDistanceParams) ([]OrderServicesByDistanceRow, error) {
+	rows, err := q.db.QueryContext(ctx, orderServicesByDistance,
+		arg.SubcategoryID,
+		arg.Limit,
+		arg.Offset,
+		arg.Radians,
+		arg.Radians_2,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []OrderServicesByDistanceRow
+	for rows.Next() {
+		var i OrderServicesByDistanceRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Description,
+			&i.SubcategoryID,
+			&i.GoogleMapAddress,
+			&i.Willaya,
+			&i.Baladia,
+			&i.AverageRating,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Distance,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const orderServicesByRating = `-- name: OrderServicesByRating :many
+SELECT s.id, s.user_id, s.description, s.subcategory_id, s.google_map_address, s.willaya, s.baladia, s.average_rating, s.created_at, s.updated_at FROM services AS s JOIN subcategories AS sc ON s.subcategory_id = $1 ORDER BY s.average_rating DESC LIMIT $2 OFFSET $3
+`
+
+type OrderServicesByRatingParams struct {
+	SubcategoryID int32 `json:"subcategory_id"`
+	Limit         int32 `json:"limit"`
+	Offset        int32 `json:"offset"`
+}
+
+// WHERE sc.name ILIKE $1 OR sc.description ILIKE $1
+// OFFSET $3 LIMIT $2;
+func (q *Queries) OrderServicesByRating(ctx context.Context, arg OrderServicesByRatingParams) ([]Service, error) {
+	rows, err := q.db.QueryContext(ctx, orderServicesByRating, arg.SubcategoryID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Service
+	for rows.Next() {
+		var i Service
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Description,
+			&i.SubcategoryID,
+			&i.GoogleMapAddress,
+			&i.Willaya,
+			&i.Baladia,
+			&i.AverageRating,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchServicesByCategory = `-- name: SearchServicesByCategory :many
 SELECT s.id, s.user_id, s.description, s.subcategory_id, s.google_map_address, s.willaya, s.baladia, s.average_rating, s.created_at, s.updated_at
 FROM services s

@@ -93,7 +93,7 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Put("/reservation-status/:id", UpdateReservitionStatusByID(db))
 
 	//search services by category order by rating, and near location
-	v1.Get("/search", SearchServices(db))
+	v1.Get("/search/subcategory", SearchServicesBySubCategory(db))
 	log.Fatal(app.Listen(":3000"))
 	return app, nil
 }
