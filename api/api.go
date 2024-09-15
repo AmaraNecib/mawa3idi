@@ -74,6 +74,8 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 
 	// reservation
 	v1.Post("/reservation", CreateReservation(db))
+	// v1.Put("/reservation/:id", UpdateReservationByID(db))
+	v1.Post("/reservation/:id", ReservationCompleted(db))
 	// get all reservations
 	// v1.Get("/reservation", GetAllReservations(db))
 	// Pass db instance to handler functions
@@ -91,6 +93,16 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Get("/reservation-status", GetAllReservitionStatus(db))
 	v1.Post("/reservation-status", CreateReservitionStatus(db))
 	v1.Put("/reservation-status/:id", UpdateReservitionStatusByID(db))
+
+	// complaint
+	v1.Post("/complaint", CreateComplaint(db))
+	v1.Get("/complaint", GetAllComplaints(db))
+	v1.Get("/complaint/:id", GetComplaintByID(db))
+
+	// Complaint type
+	v1.Get("/complaint-type", GetAllComplaintTypes(db))
+	v1.Post("/complaint-type", CreateComplaintType(db))
+	// v1.Put("/complaint-type/:id", UpdateComplaintTypeByID(db))
 
 	//search services by category order by rating, and near location
 	v1.Get("/search/subcategory", SearchServicesBySubCategory(db))

@@ -68,3 +68,15 @@ type ReservationStatus struct {
 	Id   int32  `json:"id"`
 	Name string `json:"name"`
 }
+
+type UpdateReservationStatus struct {
+	Status int32 `json:"status"`
+}
+
+type Complaint struct {
+	Complaint string `json:"complaint"`
+	TypeId    int32  `json:"type_id"`
+}
+type ComplaintType struct {
+	Name string `json:"name"`
+}

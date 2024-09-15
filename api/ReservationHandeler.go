@@ -123,3 +123,115 @@ func CreateReservation(db *DB.Queries) func(*fiber.Ctx) error {
 		})
 	}
 }
+
+func UpdateReservationByID(db *DB.Queries) func(*fiber.Ctx) error {
+	// get only reserv_status and update it
+	return func(c *fiber.Ctx) error {
+		id, err := c.ParamsInt("id")
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "Invalid ID",
+			})
+		}
+		var reservation UpdateReservationStatus
+		if err := c.BodyParser(&reservation); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err.Error(),
+			})
+		}
+		_, err = db.UpdateReservationStatusByID(c.Context(), DB.UpdateReservationStatusByIDParams{
+			ID:           int64(id),
+			ReservStatus: int32(reservation.Status),
+		})
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err.Error(),
+			})
+		}
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"ok":  true,
+			"msg": "Reservation status updated",
+		})
+	}
+}
+
+func ReservationCompleted(db *DB.Queries) func(*fiber.Ctx) error {
+	// get only reserv_status and update it
+	return func(c *fiber.Ctx) error {
+		role, err := auth.GetUserRole(strings.Split(c.Get("Authorization"), " ")[1])
+		if err != nil || role != "admin" || role != "customer" {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "Unauthorized",
+			})
+		}
+		id, err := c.ParamsInt("id")
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "Invalid ID",
+			})
+		}
+		var reservation UpdateReservationStatus
+		if err := c.BodyParser(&reservation); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err.Error(),
+			})
+		}
+		_, err = db.UpdateReservationStatusByID(c.Context(), DB.UpdateReservationStatusByIDParams{
+			ID:           int64(id),
+			ReservStatus: int32(reservation.Status),
+		})
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err.Error(),
+			})
+		}
+		// send notification to the next 4 users by fcm
+		// get the next 4 users
+		resInfo, err := db.GetReservationInfoByID(c.Context(), int64(id))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err.Error(),
+			})
+		}
+		// get the next 4 users
+		nextUsers, err := db.GetNextUserReservations(c.Context(), DB.GetNextUserReservationsParams{
+			ServiceID: resInfo.ServiceID,
+			WeekdayID: resInfo.WeekdayID,
+			ID:        int64(id),
+			Limit:     4,
+		})
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err.Error(),
+			})
+		}
+		// send notification to the next 4 users
+		for _, user := range nextUsers {
+			fmt.Println(user.UserID)
+			// send notification to the user
+			// get the user token
+			// userToken, err := db.GetUserToken(c.Context(), user.UserID)
+			// if err != nil {
+			// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			// 		"ok":    false,
+			// 		"error": err.Error(),
+			// 	})
+			// }
+			// send notification to the user
+			// send notification to the user
+			// send notification to the user
+		}
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"ok": true,
+		})
+	}
+}

@@ -125,16 +125,21 @@ CREATE TABLE IF NOT EXISTS ratings (
     created_at TIMESTAMP(0) DEFAULT NOW(),
     updated_at TIMESTAMP(0) DEFAULT NOW()
 );
-
+-- table for complaints types
+CREATE TABLE IF NOT EXISTS complaint_types (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW()
+);
 -- table for complaints
 CREATE TABLE IF NOT EXISTS complaints (
     id BIGSERIAL PRIMARY KEY,
-    service_id INT NOT NULL,
     user_id INT NOT NULL,
-    type VARCHAR(50) NOT NULL,
+    type_id INT NOT NULL,
     complaint TEXT NOT NULL,
-    FOREIGN KEY (service_id) REFERENCES services(id),
     FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (type_id) REFERENCES complaint_types(id),
     created_at TIMESTAMP(0) DEFAULT NOW(),
     updated_at TIMESTAMP(0) DEFAULT NOW()
 );

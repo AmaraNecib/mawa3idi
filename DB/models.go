@@ -19,10 +19,16 @@ type Category struct {
 
 type Complaint struct {
 	ID        int64        `json:"id"`
-	ServiceID int32        `json:"service_id"`
 	UserID    int32        `json:"user_id"`
-	Type      string       `json:"type"`
+	TypeID    int32        `json:"type_id"`
 	Complaint string       `json:"complaint"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}
+
+type ComplaintType struct {
+	ID        int64        `json:"id"`
+	Name      string       `json:"name"`
 	CreatedAt sql.NullTime `json:"created_at"`
 	UpdatedAt sql.NullTime `json:"updated_at"`
 }

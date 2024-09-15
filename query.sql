@@ -47,8 +47,8 @@ INSERT INTO ratings (service_id, user_id, rating, comment)
 VALUES ($1, $2, $3, $4);
 
 -- name: CreateComplaint :exec
-INSERT INTO complaints (service_id, user_id, type, complaint)
-VALUES ($1, $2, $3, $4);
+INSERT INTO complaints (user_id, type_id, complaint)
+VALUES ($1, $2, $3);
 
 -- name: CreateDay :exec
 INSERT INTO days (name) VALUES ($1);
@@ -158,10 +158,6 @@ UPDATE ratings
 SET service_id = $1, user_id = $2, rating = $3, comment = $4, updated_at = CURRENT_TIMESTAMP
 WHERE id = $5;
 
--- name: UpdateComplaintByID :exec
-UPDATE complaints
-SET service_id = $1, user_id = $2, type = $3, complaint = $4, updated_at = CURRENT_TIMESTAMP
-WHERE id = $5;
 
 -- Delete Operations
 
@@ -288,3 +284,40 @@ JOIN subcategories AS sc ON s.subcategory_id = sc.id
 WHERE s.subcategory_id = $1
 ORDER BY distance ASC
 LIMIT $2 OFFSET $3;
+
+
+-- name: UpdateReservationStatusByID :one
+UPDATE reservations SET reserv_status = $2 WHERE id = $1 RETURNING *;
+
+
+-- name: GetReservationInfoByID :one
+SELECT service_id, weekday_id 
+FROM reservations 
+WHERE id = $1;
+
+-- name: GetNextUserReservations :many
+SELECT * 
+FROM reservations 
+WHERE service_id = $1 
+  AND weekday_id = $2 
+  AND id > $3 
+ORDER BY id ASC 
+LIMIT $4;
+
+-- name: CreateComplaintType :exec
+INSERT INTO complaint_types (name) VALUES ($1);
+
+-- name: GetComplaintTypes :many
+SELECT * FROM complaint_types;
+
+-- name: UpdateComplaintType :exec
+UPDATE complaint_types SET name = $1 WHERE id = $2;
+
+-- name: GetAllComplaints :many
+SELECT * FROM complaints OFFSET $1 LIMIT $2;
+
+-- name: GetComplaintByID :one
+SELECT * FROM complaints WHERE id = $1;
+
+-- name: GetAllComplaintTypes :many
+SELECT * FROM complaint_types;

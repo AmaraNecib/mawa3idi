@@ -27,24 +27,27 @@ func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) 
 }
 
 const createComplaint = `-- name: CreateComplaint :exec
-INSERT INTO complaints (service_id, user_id, type, complaint)
-VALUES ($1, $2, $3, $4)
+INSERT INTO complaints (user_id, type_id, complaint)
+VALUES ($1, $2, $3)
 `
 
 type CreateComplaintParams struct {
-	ServiceID int32  `json:"service_id"`
 	UserID    int32  `json:"user_id"`
-	Type      string `json:"type"`
+	TypeID    int32  `json:"type_id"`
 	Complaint string `json:"complaint"`
 }
 
 func (q *Queries) CreateComplaint(ctx context.Context, arg CreateComplaintParams) error {
-	_, err := q.db.ExecContext(ctx, createComplaint,
-		arg.ServiceID,
-		arg.UserID,
-		arg.Type,
-		arg.Complaint,
-	)
+	_, err := q.db.ExecContext(ctx, createComplaint, arg.UserID, arg.TypeID, arg.Complaint)
+	return err
+}
+
+const createComplaintType = `-- name: CreateComplaintType :exec
+INSERT INTO complaint_types (name) VALUES ($1)
+`
+
+func (q *Queries) CreateComplaintType(ctx context.Context, name string) error {
+	_, err := q.db.ExecContext(ctx, createComplaintType, name)
 	return err
 }
 
@@ -395,6 +398,77 @@ func (q *Queries) DelteAllRoles(ctx context.Context) error {
 	return err
 }
 
+const getAllComplaintTypes = `-- name: GetAllComplaintTypes :many
+SELECT id, name, created_at, updated_at FROM complaint_types
+`
+
+func (q *Queries) GetAllComplaintTypes(ctx context.Context) ([]ComplaintType, error) {
+	rows, err := q.db.QueryContext(ctx, getAllComplaintTypes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ComplaintType
+	for rows.Next() {
+		var i ComplaintType
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllComplaints = `-- name: GetAllComplaints :many
+SELECT id, user_id, type_id, complaint, created_at, updated_at FROM complaints OFFSET $1 LIMIT $2
+`
+
+type GetAllComplaintsParams struct {
+	Offset int32 `json:"offset"`
+	Limit  int32 `json:"limit"`
+}
+
+func (q *Queries) GetAllComplaints(ctx context.Context, arg GetAllComplaintsParams) ([]Complaint, error) {
+	rows, err := q.db.QueryContext(ctx, getAllComplaints, arg.Offset, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Complaint
+	for rows.Next() {
+		var i Complaint
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.TypeID,
+			&i.Complaint,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAllDays = `-- name: GetAllDays :many
 SELECT id, name, created_at, updated_at FROM days ORDER BY id
 `
@@ -509,8 +583,58 @@ func (q *Queries) GetCategoryByID(ctx context.Context, id int64) (Category, erro
 	return i, err
 }
 
+const getComplaintByID = `-- name: GetComplaintByID :one
+SELECT id, user_id, type_id, complaint, created_at, updated_at FROM complaints WHERE id = $1
+`
+
+func (q *Queries) GetComplaintByID(ctx context.Context, id int64) (Complaint, error) {
+	row := q.db.QueryRowContext(ctx, getComplaintByID, id)
+	var i Complaint
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TypeID,
+		&i.Complaint,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getComplaintTypes = `-- name: GetComplaintTypes :many
+SELECT id, name, created_at, updated_at FROM complaint_types
+`
+
+func (q *Queries) GetComplaintTypes(ctx context.Context) ([]ComplaintType, error) {
+	rows, err := q.db.QueryContext(ctx, getComplaintTypes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ComplaintType
+	for rows.Next() {
+		var i ComplaintType
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getComplaintsByUserID = `-- name: GetComplaintsByUserID :many
-SELECT id, service_id, user_id, type, complaint, created_at, updated_at FROM complaints WHERE user_id = $1
+SELECT id, user_id, type_id, complaint, created_at, updated_at FROM complaints WHERE user_id = $1
 `
 
 func (q *Queries) GetComplaintsByUserID(ctx context.Context, userID int32) ([]Complaint, error) {
@@ -524,9 +648,8 @@ func (q *Queries) GetComplaintsByUserID(ctx context.Context, userID int32) ([]Co
 		var i Complaint
 		if err := rows.Scan(
 			&i.ID,
-			&i.ServiceID,
 			&i.UserID,
-			&i.Type,
+			&i.TypeID,
 			&i.Complaint,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -582,6 +705,62 @@ func (q *Queries) GetDaysOfWorkByServiceID(ctx context.Context, id int64) ([]Wor
 	return items, nil
 }
 
+const getNextUserReservations = `-- name: GetNextUserReservations :many
+SELECT id, service_id, user_id, time, weekday_id, ranking, reserve_type, reserv_status, created_at, updated_at 
+FROM reservations 
+WHERE service_id = $1 
+  AND weekday_id = $2 
+  AND id > $3 
+ORDER BY id ASC 
+LIMIT $4
+`
+
+type GetNextUserReservationsParams struct {
+	ServiceID int32 `json:"service_id"`
+	WeekdayID int32 `json:"weekday_id"`
+	ID        int64 `json:"id"`
+	Limit     int32 `json:"limit"`
+}
+
+func (q *Queries) GetNextUserReservations(ctx context.Context, arg GetNextUserReservationsParams) ([]Reservation, error) {
+	rows, err := q.db.QueryContext(ctx, getNextUserReservations,
+		arg.ServiceID,
+		arg.WeekdayID,
+		arg.ID,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Reservation
+	for rows.Next() {
+		var i Reservation
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.UserID,
+			&i.Time,
+			&i.WeekdayID,
+			&i.Ranking,
+			&i.ReserveType,
+			&i.ReservStatus,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getRatingsByServiceID = `-- name: GetRatingsByServiceID :many
 SELECT id, service_id, user_id, rating, comment, created_at, updated_at FROM ratings WHERE service_id = $1
 `
@@ -615,6 +794,24 @@ func (q *Queries) GetRatingsByServiceID(ctx context.Context, serviceID int32) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const getReservationInfoByID = `-- name: GetReservationInfoByID :one
+SELECT service_id, weekday_id 
+FROM reservations 
+WHERE id = $1
+`
+
+type GetReservationInfoByIDRow struct {
+	ServiceID int32 `json:"service_id"`
+	WeekdayID int32 `json:"weekday_id"`
+}
+
+func (q *Queries) GetReservationInfoByID(ctx context.Context, id int64) (GetReservationInfoByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getReservationInfoByID, id)
+	var i GetReservationInfoByIDRow
+	err := row.Scan(&i.ServiceID, &i.WeekdayID)
+	return i, err
 }
 
 const getReservationsByServiceID = `-- name: GetReservationsByServiceID :many
@@ -1597,28 +1794,17 @@ func (q *Queries) UpdateCategoryByID(ctx context.Context, arg UpdateCategoryByID
 	return err
 }
 
-const updateComplaintByID = `-- name: UpdateComplaintByID :exec
-UPDATE complaints
-SET service_id = $1, user_id = $2, type = $3, complaint = $4, updated_at = CURRENT_TIMESTAMP
-WHERE id = $5
+const updateComplaintType = `-- name: UpdateComplaintType :exec
+UPDATE complaint_types SET name = $1 WHERE id = $2
 `
 
-type UpdateComplaintByIDParams struct {
-	ServiceID int32  `json:"service_id"`
-	UserID    int32  `json:"user_id"`
-	Type      string `json:"type"`
-	Complaint string `json:"complaint"`
-	ID        int64  `json:"id"`
+type UpdateComplaintTypeParams struct {
+	Name string `json:"name"`
+	ID   int64  `json:"id"`
 }
 
-func (q *Queries) UpdateComplaintByID(ctx context.Context, arg UpdateComplaintByIDParams) error {
-	_, err := q.db.ExecContext(ctx, updateComplaintByID,
-		arg.ServiceID,
-		arg.UserID,
-		arg.Type,
-		arg.Complaint,
-		arg.ID,
-	)
+func (q *Queries) UpdateComplaintType(ctx context.Context, arg UpdateComplaintTypeParams) error {
+	_, err := q.db.ExecContext(ctx, updateComplaintType, arg.Name, arg.ID)
 	return err
 }
 
@@ -1672,6 +1858,33 @@ func (q *Queries) UpdateReservationByID(ctx context.Context, arg UpdateReservati
 		arg.ID,
 	)
 	return err
+}
+
+const updateReservationStatusByID = `-- name: UpdateReservationStatusByID :one
+UPDATE reservations SET reserv_status = $2 WHERE id = $1 RETURNING id, service_id, user_id, time, weekday_id, ranking, reserve_type, reserv_status, created_at, updated_at
+`
+
+type UpdateReservationStatusByIDParams struct {
+	ID           int64 `json:"id"`
+	ReservStatus int32 `json:"reserv_status"`
+}
+
+func (q *Queries) UpdateReservationStatusByID(ctx context.Context, arg UpdateReservationStatusByIDParams) (Reservation, error) {
+	row := q.db.QueryRowContext(ctx, updateReservationStatusByID, arg.ID, arg.ReservStatus)
+	var i Reservation
+	err := row.Scan(
+		&i.ID,
+		&i.ServiceID,
+		&i.UserID,
+		&i.Time,
+		&i.WeekdayID,
+		&i.Ranking,
+		&i.ReserveType,
+		&i.ReservStatus,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const updateReserveStatusName = `-- name: UpdateReserveStatusName :exec
