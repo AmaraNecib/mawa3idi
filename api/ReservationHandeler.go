@@ -19,16 +19,17 @@ func CreateReservation(db *DB.Queries) func(*fiber.Ctx) error {
 				"error": err.Error(),
 			})
 		}
-		fmt.Println(reservation.ServiceID)
 		timeObj, err := time.Parse("2006-01-02", reservation.Time)
-		if err != nil {
+		// check if the day is the day of request or after
+		if err != nil || timeObj.Before(time.Now().Truncate(24*time.Hour)) {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
-				"error": err.Error(),
+				"error": "Invalid date. Reservations can only be made for today or future dates.",
 			})
 		}
 		// get the number of the day
 		dayId := timeObj.Weekday()
+		fmt.Println("the day is ", dayId, int32(dayId))
 		res, err := db.GetWorkdaysByServiceID(c.Context(), int32(reservation.ServiceID))
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -36,22 +37,20 @@ func CreateReservation(db *DB.Queries) func(*fiber.Ctx) error {
 				"error": err.Error(),
 			})
 		}
-		weekdayId := 0 // get the weekday id
-		for _, day := range res {
-			if int32(dayId) == day.DayID {
-				weekdayId = int(day.ID)
-			}
-		}
-		if weekdayId == 0 || !res[dayId].OpenToWork {
+
+		fmt.Println("week day", dayId, res[(dayId+1)%7].Name, res[(dayId+1)%7].ID, "open to work", res[(dayId+1)%7].OpenToWork, "day id", res[(dayId+1)%7].ID)
+		if !res[(dayId+1)%7].OpenToWork {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": "The day is not open",
+				"day":   res[(dayId+1)%7].Name,
+				"res":   res,
 			})
 		}
 		token := strings.Split(string(c.Get("Authorization")), " ")[1]
 		UserID := int32(auth.GetUserID(string(token)))
 		// check if the date is matched with the day and the day is open or not
-		if dayId == 0 || reservation.ServiceID == 0 || UserID == 0 {
+		if reservation.ServiceID == 0 || UserID == 0 {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": "DayID, ServiceID and UserID are required",
@@ -61,7 +60,7 @@ func CreateReservation(db *DB.Queries) func(*fiber.Ctx) error {
 			UserID:    UserID,
 			ServiceID: int32(reservation.ServiceID),
 			Time:      timeObj,
-			WeekdayID: int32(weekdayId),
+			WeekdayID: int32(res[(dayId+1)%7].ID),
 		})
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -79,7 +78,7 @@ func CreateReservation(db *DB.Queries) func(*fiber.Ctx) error {
 
 		// get the reservation count
 		count, err := db.GetReservationsCount(c.Context(), DB.GetReservationsCountParams{
-			WeekdayID: int32(weekdayId),
+			WeekdayID: int32(res[(dayId+1)%7].ID),
 			ServiceID: int32(reservation.ServiceID),
 			Time:      timeObj,
 		})
@@ -100,7 +99,7 @@ func CreateReservation(db *DB.Queries) func(*fiber.Ctx) error {
 		fmt.Println(count)
 		myReservation, err := db.CreateReservation(c.Context(), DB.CreateReservationParams{
 			UserID:    UserID,
-			WeekdayID: int32(weekdayId),
+			WeekdayID: int32(res[(dayId+1)%7].ID),
 			ServiceID: int32(reservation.ServiceID),
 			Time:      timeObj,
 			Ranking:   int32(count + 1),
@@ -232,6 +231,100 @@ func ReservationCompleted(db *DB.Queries) func(*fiber.Ctx) error {
 		}
 		return c.Status(fiber.StatusOK).JSON(fiber.Map{
 			"ok": true,
+		})
+	}
+}
+
+func GetAllReservationsByUserID(db *DB.Queries) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		token := strings.Split(string(c.Get("Authorization")), " ")[1]
+		UserID := int32(auth.GetUserID(string(token)))
+		if UserID == 0 {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "Invalid token",
+			})
+		}
+		limit := c.QueryInt("limit")
+		if limit == 0 {
+			limit = 10
+		}
+		page := c.QueryInt("page")
+		if page == 0 {
+			page = 1
+		}
+		reservations, err := db.GetReservationsByUserID(c.Context(), DB.GetReservationsByUserIDParams{
+			UserID: int32(UserID),
+			Limit:  int32(limit),
+			Offset: int32((page - 1) * limit),
+		})
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err.Error(),
+			})
+		}
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"ok":           true,
+			"reservations": reservations,
+		})
+	}
+}
+
+func GetReservationByID(db *DB.Queries) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		id, err := c.ParamsInt("id")
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "Invalid ID",
+			})
+		}
+		reservation, err := db.GetReservationByID(c.Context(), int64(id))
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err.Error(),
+			})
+		}
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"ok":          true,
+			"reservation": reservation,
+		})
+	}
+}
+
+func GetReservationsByServiceID(db *DB.Queries) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		id, err := c.ParamsInt("id")
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "Invalid ID",
+			})
+		}
+		limit := c.QueryInt("limit")
+		if limit == 0 {
+			limit = 10
+		}
+		page := c.QueryInt("page")
+		if page == 0 {
+			page = 1
+		}
+		reservations, err := db.GetReservationsByServiceID(c.Context(), DB.GetReservationsByServiceIDParams{
+			ServiceID: int32(id),
+			Limit:     int32(limit),
+			Offset:    int32((page - 1) * limit),
+		})
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": err.Error(),
+			})
+		}
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"ok":           true,
+			"reservations": reservations,
 		})
 	}
 }

@@ -108,10 +108,10 @@ SELECT * FROM services WHERE id = $1 LIMIT 1;
 SELECT * FROM services ORDER BY id DESC OFFSET $2 LIMIT $1;
 
 -- name: GetReservationsByUserID :many
-SELECT * FROM reservations WHERE user_id = $1;
+SELECT * FROM reservations WHERE user_id = $1 OFFSET $3 LIMIT $2;
 
 -- name: GetReservationsByServiceID :many
-SELECT * FROM reservations WHERE service_id = $1;
+SELECT * FROM reservations WHERE service_id = $1 And OFFSET $3 LIMIT $2;
 
 -- name: GetRatingsByServiceID :many
 SELECT * FROM ratings WHERE service_id = $1;
@@ -321,3 +321,15 @@ SELECT * FROM complaints WHERE id = $1;
 
 -- name: GetAllComplaintTypes :many
 SELECT * FROM complaint_types;
+
+-- name: GetAllRatingByServiceID :many
+SELECT * FROM ratings WHERE service_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3;
+
+-- name: DeleteRating :exec
+DELETE FROM ratings WHERE id = $1 AND user_id = $2;
+
+-- name: CreateDeleteAccountRequest :exec
+INSERT INTO delete_requests (user_id) VALUES ($1);
+
+-- name: GetReservationByID :one
+SELECT * FROM reservations WHERE id = $1;

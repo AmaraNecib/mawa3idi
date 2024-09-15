@@ -60,6 +60,15 @@ func (q *Queries) CreateDay(ctx context.Context, name string) error {
 	return err
 }
 
+const createDeleteAccountRequest = `-- name: CreateDeleteAccountRequest :exec
+INSERT INTO delete_requests (user_id) VALUES ($1)
+`
+
+func (q *Queries) CreateDeleteAccountRequest(ctx context.Context, userID int32) error {
+	_, err := q.db.ExecContext(ctx, createDeleteAccountRequest, userID)
+	return err
+}
+
 const createRating = `-- name: CreateRating :exec
 INSERT INTO ratings (service_id, user_id, rating, comment)
 VALUES ($1, $2, $3, $4)
@@ -308,6 +317,20 @@ func (q *Queries) DeleteComplaintByID(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteRating = `-- name: DeleteRating :exec
+DELETE FROM ratings WHERE id = $1 AND user_id = $2
+`
+
+type DeleteRatingParams struct {
+	ID     int64 `json:"id"`
+	UserID int32 `json:"user_id"`
+}
+
+func (q *Queries) DeleteRating(ctx context.Context, arg DeleteRatingParams) error {
+	_, err := q.db.ExecContext(ctx, deleteRating, arg.ID, arg.UserID)
+	return err
+}
+
 const deleteRatingByID = `-- name: DeleteRatingByID :exec
 DELETE FROM ratings
 WHERE id = $1
@@ -485,6 +508,47 @@ func (q *Queries) GetAllDays(ctx context.Context) ([]Day, error) {
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAllRatingByServiceID = `-- name: GetAllRatingByServiceID :many
+SELECT id, service_id, user_id, rating, comment, created_at, updated_at FROM ratings WHERE service_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3
+`
+
+type GetAllRatingByServiceIDParams struct {
+	ServiceID int32 `json:"service_id"`
+	Limit     int32 `json:"limit"`
+	Offset    int32 `json:"offset"`
+}
+
+func (q *Queries) GetAllRatingByServiceID(ctx context.Context, arg GetAllRatingByServiceIDParams) ([]Rating, error) {
+	rows, err := q.db.QueryContext(ctx, getAllRatingByServiceID, arg.ServiceID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Rating
+	for rows.Next() {
+		var i Rating
+		if err := rows.Scan(
+			&i.ID,
+			&i.ServiceID,
+			&i.UserID,
+			&i.Rating,
+			&i.Comment,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -796,6 +860,28 @@ func (q *Queries) GetRatingsByServiceID(ctx context.Context, serviceID int32) ([
 	return items, nil
 }
 
+const getReservationByID = `-- name: GetReservationByID :one
+SELECT id, service_id, user_id, time, weekday_id, ranking, reserve_type, reserv_status, created_at, updated_at FROM reservations WHERE id = $1
+`
+
+func (q *Queries) GetReservationByID(ctx context.Context, id int64) (Reservation, error) {
+	row := q.db.QueryRowContext(ctx, getReservationByID, id)
+	var i Reservation
+	err := row.Scan(
+		&i.ID,
+		&i.ServiceID,
+		&i.UserID,
+		&i.Time,
+		&i.WeekdayID,
+		&i.Ranking,
+		&i.ReserveType,
+		&i.ReservStatus,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getReservationInfoByID = `-- name: GetReservationInfoByID :one
 SELECT service_id, weekday_id 
 FROM reservations 
@@ -815,11 +901,17 @@ func (q *Queries) GetReservationInfoByID(ctx context.Context, id int64) (GetRese
 }
 
 const getReservationsByServiceID = `-- name: GetReservationsByServiceID :many
-SELECT id, service_id, user_id, time, weekday_id, ranking, reserve_type, reserv_status, created_at, updated_at FROM reservations WHERE service_id = $1
+SELECT id, service_id, user_id, time, weekday_id, ranking, reserve_type, reserv_status, created_at, updated_at FROM reservations WHERE service_id = $1 OFFSET $3 LIMIT $2
 `
 
-func (q *Queries) GetReservationsByServiceID(ctx context.Context, serviceID int32) ([]Reservation, error) {
-	rows, err := q.db.QueryContext(ctx, getReservationsByServiceID, serviceID)
+type GetReservationsByServiceIDParams struct {
+	ServiceID int32 `json:"service_id"`
+	Limit     int32 `json:"limit"`
+	Offset    int32 `json:"offset"`
+}
+
+func (q *Queries) GetReservationsByServiceID(ctx context.Context, arg GetReservationsByServiceIDParams) ([]Reservation, error) {
+	rows, err := q.db.QueryContext(ctx, getReservationsByServiceID, arg.ServiceID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -853,11 +945,17 @@ func (q *Queries) GetReservationsByServiceID(ctx context.Context, serviceID int3
 }
 
 const getReservationsByUserID = `-- name: GetReservationsByUserID :many
-SELECT id, service_id, user_id, time, weekday_id, ranking, reserve_type, reserv_status, created_at, updated_at FROM reservations WHERE user_id = $1
+SELECT id, service_id, user_id, time, weekday_id, ranking, reserve_type, reserv_status, created_at, updated_at FROM reservations WHERE user_id = $1 OFFSET $3 LIMIT $2
 `
 
-func (q *Queries) GetReservationsByUserID(ctx context.Context, userID int32) ([]Reservation, error) {
-	rows, err := q.db.QueryContext(ctx, getReservationsByUserID, userID)
+type GetReservationsByUserIDParams struct {
+	UserID int32 `json:"user_id"`
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetReservationsByUserID(ctx context.Context, arg GetReservationsByUserIDParams) ([]Reservation, error) {
+	rows, err := q.db.QueryContext(ctx, getReservationsByUserID, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

@@ -40,6 +40,21 @@ type Day struct {
 	UpdatedAt sql.NullTime `json:"updated_at"`
 }
 
+type DeleteRequest struct {
+	ID        int64        `json:"id"`
+	UserID    int32        `json:"user_id"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}
+
+type Device struct {
+	ID        int64        `json:"id"`
+	UserID    int32        `json:"user_id"`
+	Token     string       `json:"token"`
+	CreatedAt sql.NullTime `json:"created_at"`
+	UpdatedAt sql.NullTime `json:"updated_at"`
+}
+
 type Rating struct {
 	ID        int64          `json:"id"`
 	ServiceID int32          `json:"service_id"`

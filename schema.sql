@@ -143,3 +143,22 @@ CREATE TABLE IF NOT EXISTS complaints (
     created_at TIMESTAMP(0) DEFAULT NOW(),
     updated_at TIMESTAMP(0) DEFAULT NOW()
 );
+
+-- devicess token
+CREATE TABLE IF NOT EXISTS devices (
+    id BIGSERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- table for delete account requests
+CREATE TABLE IF NOT EXISTS delete_requests (
+    id BIGSERIAL PRIMARY KEY,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP(0) DEFAULT NOW(),
+    updated_at TIMESTAMP(0) DEFAULT NOW(),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);

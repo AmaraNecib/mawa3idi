@@ -48,6 +48,9 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	// get all services
 	v1.Get("/service", GetAllServices(db))
 	v1.Get("/service/:id", GetServiceByID(db))
+	// get rating of a service by service id
+	v1.Get("service/:id/rating", GetAllRatingByServiceID(db))
+
 	// category
 	v1.Post("/category", CreateCategory(db))
 
@@ -76,6 +79,13 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Post("/reservation", CreateReservation(db))
 	// v1.Put("/reservation/:id", UpdateReservationByID(db))
 	v1.Post("/reservation/:id", ReservationCompleted(db))
+	// get all reservations by user id
+	v1.Get("/user/reservation", GetAllReservationsByUserID(db))
+
+	v1.Get("/reservation/:id", GetReservationByID(db))
+
+	// get all reservations by service id for a specific date
+	v1.Get("/service/:id/reservation", GetReservationsByServiceID(db))
 	// get all reservations
 	// v1.Get("/reservation", GetAllReservations(db))
 	// Pass db instance to handler functions
@@ -103,7 +113,11 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Get("/complaint-type", GetAllComplaintTypes(db))
 	v1.Post("/complaint-type", CreateComplaintType(db))
 	// v1.Put("/complaint-type/:id", UpdateComplaintTypeByID(db))
-
+	// rating a service
+	v1.Post("/rating", CreateRating(db))
+	v1.Delete("/rating/:id", DeleteRating(db))
+	// delete my account
+	v1.Delete("/delete-my-account", RequestDeleteAccount(db))
 	//search services by category order by rating, and near location
 	v1.Get("/search/subcategory", SearchServicesBySubCategory(db))
 	log.Fatal(app.Listen(":3000"))
