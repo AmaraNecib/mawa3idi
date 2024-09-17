@@ -10,6 +10,7 @@ import (
 
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
@@ -21,10 +22,16 @@ func Protected() func(*fiber.Ctx) error {
 func Init(db *DB.Queries) (*fiber.App, error) {
 	app := fiber.New(
 		fiber.Config{
-			// Prefork: true,
+			Prefork: true,
 		},
 	)
+	// app.Use(cors.New())
 
+	// Or extend your config for customization
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		// AllowHeaders: "Origin, Content-Type, Accept",
+	}))
 	app.Use(logger.New())
 
 	api := app.Group("/api")

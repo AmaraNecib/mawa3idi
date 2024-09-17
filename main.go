@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
 	"log"
 	"mawa3id/DB"
 	database "mawa3id/DataBase"
@@ -18,16 +16,16 @@ func main() {
 		log.Fatalf("Error connecting to the database: %v", err)
 		database.CloseDB(DATABASE)
 	}
-	schema, err := ioutil.ReadFile("schema.sql")
-	if err != nil {
-		log.Fatal(err)
-	}
+	// schema, err := ioutil.ReadFile("schema.sql")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 
-	// Execute the schema creation
-	if _, err := DATABASE.Exec(string(schema)); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Successfully created schema")
+	// // Execute the schema creation
+	// if _, err := DATABASE.Exec(string(schema)); err != nil {
+	// 	log.Fatal(err)
+	// }
+	// fmt.Println("Successfully created schema")
 	queries := DB.New(DATABASE)
 	_, err = api.Init(queries)
 	if err != nil {

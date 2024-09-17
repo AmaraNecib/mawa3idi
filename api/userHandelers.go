@@ -93,7 +93,7 @@ func login(db *DB.Queries) fiber.Handler {
 
 		// Create the Claims
 		if err != nil {
-			fmt.Println("heress ", err)
+			fmt.Println("heress ", err, Login)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"ok":    false,
 				"error": "Invalid Credentials"},
