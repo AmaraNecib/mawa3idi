@@ -65,6 +65,7 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Post("/day", CreateDay(db))
 	// get all categories
 	v1.Get("/category", GetAllCategories(db))
+	v1.Get("/category/:id", GetSubCategoriesByID(db))
 	v1.Put("/category/:id", UpdateCategoryByID(db))
 	v1.Delete("/category/:id", DeleteCategory(db))
 	// subcategory

@@ -247,3 +247,31 @@ func GetAllSubCategories(db *DB.Queries) fiber.Handler {
 		return ctx.Status(fiber.StatusOK).JSON(response)
 	}
 }
+
+func GetSubCategoriesByID(db *DB.Queries) fiber.Handler {
+	return func(ctx *fiber.Ctx) error {
+		id := ctx.Params("id")
+		idInt, err := strconv.Atoi(id)
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "Invalid ID",
+			})
+		}
+		subcategories, err := db.GetSubCatgoriesByCatgoryId(ctx.Context(), int32(idInt))
+		if err != nil {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": fmt.Sprintf("something went wrong: %v", err),
+			})
+		}
+		if len(subcategories) == 0 {
+			subcategories = []DB.Subcategory{}
+		}
+		response := fiber.Map{
+			"ok":            true,
+			"subcategories": subcategories,
+		}
+		return ctx.Status(fiber.StatusOK).JSON(response)
+	}
+}

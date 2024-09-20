@@ -1272,6 +1272,40 @@ func (q *Queries) GetServices(ctx context.Context, arg GetServicesParams) ([]Ser
 	return items, nil
 }
 
+const getSubCatgoriesByCatgoryId = `-- name: GetSubCatgoriesByCatgoryId :many
+SELECT id, name, description, category_id, created_at, updated_at from subcategories WHERE category_id = $1
+`
+
+func (q *Queries) GetSubCatgoriesByCatgoryId(ctx context.Context, categoryID int32) ([]Subcategory, error) {
+	rows, err := q.db.QueryContext(ctx, getSubCatgoriesByCatgoryId, categoryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Subcategory
+	for rows.Next() {
+		var i Subcategory
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.CategoryID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getSubcategories = `-- name: GetSubcategories :many
 SELECT subcategories.id, subcategories.name, subcategories.description, subcategories.category_id, subcategories.created_at, subcategories.updated_at, categories.name AS category_name
 FROM subcategories

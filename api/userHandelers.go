@@ -18,7 +18,7 @@ func CreateUser(db *DB.Queries) fiber.Handler {
 				"error": err,
 			})
 		}
-		if user.Email == "" || user.Password == "" || user.FirstName == "" || user.LastName == "" || user.PhoneNumber == "" || user.RoleID == 0 {
+		if user.Email == "" || user.Password == "" || user.FirstName == "" || user.LastName == "" || user.PhoneNumber == "" || user.RoleID <= 1 {
 			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": "All fields are required",
@@ -125,6 +125,7 @@ func login(db *DB.Queries) fiber.Handler {
 
 		return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
 			"ok":    true,
-			"token": token})
+			"token": token,
+			"role":  res.RoleName})
 	}
 }

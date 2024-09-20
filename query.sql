@@ -111,7 +111,7 @@ SELECT * FROM services ORDER BY id DESC OFFSET $2 LIMIT $1;
 SELECT * FROM reservations WHERE user_id = $1 OFFSET $3 LIMIT $2;
 
 -- name: GetReservationsByServiceID :many
-SELECT * FROM reservations WHERE service_id = $1 And OFFSET $3 LIMIT $2;
+SELECT * FROM reservations WHERE service_id = $1 OFFSET $3 LIMIT $2;
 
 -- name: GetRatingsByServiceID :many
 SELECT * FROM ratings WHERE service_id = $1;
@@ -333,3 +333,6 @@ INSERT INTO delete_requests (user_id) VALUES ($1);
 
 -- name: GetReservationByID :one
 SELECT * FROM reservations WHERE id = $1;
+
+-- name: GetSubCatgoriesByCatgoryId :many
+SELECT * from subcategories WHERE category_id = $1;
