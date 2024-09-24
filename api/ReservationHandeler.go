@@ -161,10 +161,11 @@ func ReservationCompleted(db *DB.Queries) func(*fiber.Ctx) error {
 	// get only reserv_status and update it
 	return func(c *fiber.Ctx) error {
 		role, err := auth.GetUserRole(strings.Split(c.Get("Authorization"), " ")[1])
-		if err != nil || role != "admin" || role != "customer" {
+		if err != nil || (role != "customer" && role != "admin") {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": "Unauthorized",
+				"role":  role,
 			})
 		}
 		id, err := c.ParamsInt("id")
@@ -179,6 +180,7 @@ func ReservationCompleted(db *DB.Queries) func(*fiber.Ctx) error {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": err.Error(),
+				"msg":   "Invalid body",
 			})
 		}
 		_, err = db.UpdateReservationStatusByID(c.Context(), DB.UpdateReservationStatusByIDParams{
@@ -189,6 +191,7 @@ func ReservationCompleted(db *DB.Queries) func(*fiber.Ctx) error {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": err.Error(),
+				"msg":   "Error updating reservation status",
 			})
 		}
 		// send notification to the next 4 users by fcm
@@ -198,6 +201,7 @@ func ReservationCompleted(db *DB.Queries) func(*fiber.Ctx) error {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": err.Error(),
+				"msg":   "Error getting reservation info",
 			})
 		}
 		// get the next 4 users
@@ -211,6 +215,7 @@ func ReservationCompleted(db *DB.Queries) func(*fiber.Ctx) error {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
 				"error": err.Error(),
+				"msg":   "Error getting next users",
 			})
 		}
 		// send notification to the next 4 users

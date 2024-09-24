@@ -75,7 +75,7 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	// v1.Delete("/subcategory/:id", DeleteSubCategory(db))
 
 	// get all users
-	// v1.Get("/user", Protected(), GetAllUsers(db))
+	v1.Get("/users", AdminMiddleware, GetAllUsers(db))
 	v1.Post("/workdays", CreateWorkDays(db))
 	// get all workdays
 	v1.Get("/workdays", GetAllWorkDays(db))
