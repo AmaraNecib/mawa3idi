@@ -59,7 +59,7 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Get("service/:id/rating", GetAllRatingByServiceID(db))
 
 	// category
-	v1.Post("/category", CreateCategory(db))
+	v1.Post("/category", AdminMiddleware, CreateCategory(db))
 
 	// days of the week
 	v1.Post("/day", CreateDay(db))
@@ -69,14 +69,14 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	v1.Put("/category/:id", UpdateCategoryByID(db))
 	v1.Delete("/category/:id", DeleteCategory(db))
 	// subcategory
-	v1.Post("/subcategory", CreateSubCategory(db))
+	v1.Post("/subcategory", AdminMiddleware, CreateSubCategory(db))
 	// get all subcategories
 	v1.Get("/subcategory", GetAllSubCategories(db))
 	// v1.Delete("/subcategory/:id", DeleteSubCategory(db))
 
 	// get all users
 	v1.Get("/users", AdminMiddleware, GetAllUsers(db))
-	v1.Post("/workdays", CreateWorkDays(db))
+	v1.Post("/workdays", AdminMiddleware, CreateWorkDays(db))
 	// get all workdays
 	v1.Get("/workdays", GetAllWorkDays(db))
 	v1.Put("/workdays", UpdateAllWorkDays(db))
@@ -97,16 +97,16 @@ func Init(db *DB.Queries) (*fiber.App, error) {
 	// get all reservations
 	// v1.Get("/reservation", GetAllReservations(db))
 	// Pass db instance to handler functions
-	v1.Post("/role", CreateRole(db))
+	v1.Post("/role", AdminMiddleware, CreateRole(db))
 	// get all roles
-	v1.Get("/role", GetAllRoles(db))
-	v1.Put("/role/:id", UpdateRoleByID(db))
-	v1.Delete("/role/:id", DeleteRole(db))
+	v1.Get("/role", AdminMiddleware, GetAllRoles(db))
+	v1.Put("/role/:id", AdminMiddleware, UpdateRoleByID(db))
+	v1.Delete("/role/:id", AdminMiddleware, DeleteRole(db))
 
 	// reservation type
-	v1.Get("/reservation-type", GetAllReservitionTypes(db))
-	v1.Post("/reservation-type", CreateReservitionType(db))
-	v1.Delete("/reservation-type/:id", DeleteReservitionType(db))
+	v1.Get("/reservation-type", AdminMiddleware, GetAllReservitionTypes(db))
+	v1.Post("/reservation-type", AdminMiddleware, CreateReservitionType(db))
+	v1.Delete("/reservation-type/:id", AdminMiddleware, DeleteReservitionType(db))
 	// reservation status
 	v1.Get("/reservation-status", GetAllReservitionStatus(db))
 	v1.Post("/reservation-status", CreateReservitionStatus(db))

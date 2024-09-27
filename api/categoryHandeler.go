@@ -28,20 +28,6 @@ func CreateCategory(db *DB.Queries) fiber.Handler {
 				"error": "Name is required",
 			})
 		}
-		token := strings.Split(string(ctx.Get("Authorization")), " ")[1]
-		role, err := auth.GetUserRole((string(token)))
-		if role != static.Admin {
-			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"ok":    false,
-				"error": "Unauthorized",
-			})
-		}
-		if err != nil {
-			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"ok":    false,
-				"error": err,
-			})
-		}
 		err = db.CreateCategory(ctx.Context(), DB.CreateCategoryParams{
 			Name:        category.Name,
 			Description: category.Description,
@@ -53,8 +39,7 @@ func CreateCategory(db *DB.Queries) fiber.Handler {
 			})
 		}
 		response := fiber.Map{
-			"ok":   true,
-			"user": category,
+			"ok": true,
 		}
 		return ctx.Status(fiber.StatusCreated).JSON(response)
 	}
