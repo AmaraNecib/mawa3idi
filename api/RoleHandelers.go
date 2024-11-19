@@ -53,6 +53,12 @@ func DeleteRole(db *DB.Queries) fiber.Handler {
 func CreateRole(db *DB.Queries) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		var role DB.Role
+		if role.Name == "" {
+			return ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"ok":    false,
+				"error": "Role name is required",
+			})
+		}
 		if err := ctx.BodyParser(&role); err != nil {
 			ctx.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"ok":    false,
